@@ -11,6 +11,7 @@ import logging
 import os
 import random
 import re
+from concurrent.futures import ThreadPoolExecutor
 from hashlib import sha1
 
 import requests
@@ -325,6 +326,197 @@ def _maybe_dummy(devices, mode, lat=None, lon=None):
     ]
 
 
+# --- Provider fetchers -------------------------------------------------------
+# Each returns a list of device dicts, handles its own errors (returns [] on
+# failure), and takes lat/lon/params as arguments — it never touches the
+# thread-local `request`, so it is safe to run in a worker thread on the shared
+# HTTP session (urllib3's pool is thread-safe).
+
+def _wigle_bt_devices(lat, lon):
+    devices = []
+    try:
+        resp = HTTP.get(
+            "https://api.wigle.net/api/v2/bluetooth/search",
+            params={"latrange1": lat - 0.01, "latrange2": lat + 0.01, "longrange1": lon - 0.01, "longrange2": lon + 0.01},
+            auth=(WIGLE_API_NAME, WIGLE_API_TOKEN),
+            timeout=HTTP_TIMEOUT,
+        )
+        if resp.status_code == 200:
+            for device in resp.json().get("results", []):
+                name = device.get("name") or device.get("netid")
+                classified_type = classify_device(name, "bluetooth")
+                devices.append({
+                    "lat": device.get("trilat"),
+                    "lon": device.get("trilong"),
+                    "ssid": name,
+                    "bssid": device.get("netid"),
+                    "vendor": device.get("type") or ("Bluetooth Node" if classified_type == "bluetooth" else classified_type.replace("_", " ").title()),
+                    "signal": device.get("level"),
+                    "timestamp": device.get("lastupdt"),
+                    "type": classified_type,
+                })
+        else:
+            log.warning("Wigle BT error: %s", resp.status_code)
+    except Exception as e:
+        log.warning("Wigle BT exception: %s", e)
+    return devices
+
+
+def _wigle_wifi_devices(lat, lon):
+    devices = []
+    try:
+        resp = HTTP.get(
+            "https://api.wigle.net/api/v2/network/search",
+            params={"latrange1": lat - 0.01, "latrange2": lat + 0.01, "longrange1": lon - 0.01, "longrange2": lon + 0.01},
+            auth=(WIGLE_API_NAME, WIGLE_API_TOKEN),
+            timeout=HTTP_TIMEOUT,
+        )
+        if resp.status_code == 200:
+            for network in resp.json().get("results", []):
+                name = network.get("ssid")
+                classified_type = classify_device(name, "router")
+                devices.append({
+                    "lat": network.get("trilat"),
+                    "lon": network.get("trilong"),
+                    "ssid": name,
+                    "bssid": network.get("netid"),
+                    "vendor": network.get("vendor"),
+                    "signal": network.get("level"),
+                    "timestamp": network.get("lastupdt"),
+                    "type": classified_type,
+                })
+            # Augment devices with wpa-sec leaked data (one more upstream call,
+            # but it depends on Wigle results so it stays inside this fetcher).
+            devices = wpasec_kquery(devices)
+        else:
+            log.warning("Wigle error: %s", resp.status_code)
+    except Exception as e:
+        log.warning("Wigle exception: %s", e)
+    return devices
+
+
+def _wigle_search_devices(params):
+    """Wigle network search by arbitrary params (bbox / netid / ssid) → router
+    devices with wpa-sec enrichment. Used by /searchzz."""
+    devices = []
+    try:
+        resp = HTTP.get(
+            "https://api.wigle.net/api/v2/network/search",
+            params=params,
+            auth=(WIGLE_API_NAME, WIGLE_API_TOKEN),
+            timeout=HTTP_TIMEOUT,
+        )
+        if resp.status_code == 200:
+            for network in resp.json().get("results", []):
+                devices.append(_wigle_network_to_device(network))
+            devices = wpasec_kquery(devices)
+        else:
+            log.warning("Wigle search error: %s", resp.status_code)
+    except Exception as e:
+        log.warning("Wigle search exception: %s", e)
+    return devices
+
+
+def _unwiredlabs_devices(lat, lon):
+    devices = []
+    try:
+        resp = HTTP.get(
+            "https://us1.unwiredlabs.com/v2/process.php",
+            json={"token": OPENCELLID_API_KEY, "lat": lat, "lon": lon, "address": 0},
+            timeout=HTTP_TIMEOUT,
+        )
+        if resp.status_code == 200:
+            data = resp.json()
+            if data.get("status") == "ok":
+                for cell in data.get("cells", []):
+                    devices.append({
+                        "lat": cell.get("lat"),
+                        "lon": cell.get("lon"),
+                        "cell_id": str(cell.get("cellid")),
+                        "signal": cell.get("signal"),
+                        "accuracy": cell.get("accuracy"),
+                        "timestamp": cell.get("updated"),
+                        "type": "cell_tower",
+                    })
+            else:
+                log.warning("OpenCellID API error: %s", data.get("message", "Unknown error"))
+        else:
+            log.warning("OpenCellID HTTP error: %s", resp.status_code)
+    except Exception as e:
+        log.warning("OpenCellID exception: %s", e)
+    return devices
+
+
+def _shodan_geo_devices(lat, lon):
+    if not SHODAN_API_KEY:
+        return []
+    devices = []
+    try:
+        resp = HTTP.get(
+            "https://api.shodan.io/shodan/host/search",
+            params={"key": SHODAN_API_KEY, "query": f"geo:{lat},{lon},1", "limit": 5},
+            timeout=HTTP_TIMEOUT,
+        )
+        if resp.status_code == 200:
+            for banner in resp.json().get("matches", []):
+                info = banner.get("data", "")
+                devices.append({
+                    "lat": banner["location"]["latitude"],
+                    "lon": banner["location"]["longitude"],
+                    "ip": banner["ip_str"],
+                    "info": info[:50],
+                    "type": classify_device(info, "iot_device"),
+                })
+    except Exception as e:
+        log.warning("Shodan exception: %s", e)
+    return devices
+
+
+def _shodan_query_devices(query):
+    if not SHODAN_API_KEY:
+        log.info("Shodan search skipped: No API key provided")
+        return []
+    devices = []
+    try:
+        resp = HTTP.get(
+            "https://api.shodan.io/shodan/host/search",
+            params={"key": SHODAN_API_KEY, "query": query, "limit": 10},
+            timeout=HTTP_TIMEOUT,
+        )
+        if resp.status_code == 200:
+            for host in resp.json().get("matches", []):
+                devices.append({
+                    "lat": host.get("location", {}).get("latitude"),
+                    "lon": host.get("location", {}).get("longitude"),
+                    "ip": host.get("ip_str"),
+                    "vendor": host.get("org"),
+                    "type": host.get("product", "iot"),
+                })
+        else:
+            log.warning("Shodan search error: %s", resp.status_code)
+    except Exception as e:
+        log.warning("Shodan search exception: %s", e)
+    return devices
+
+
+def _gather(tasks):
+    """Run each 0-arg callable concurrently; return results IN ORDER (not
+    completion order), so downstream output stays deterministic. Tasks handle
+    their own errors; the try/except here is a backstop."""
+    if len(tasks) == 1:
+        return [tasks[0]()]
+    with ThreadPoolExecutor(max_workers=len(tasks)) as pool:
+        futures = [pool.submit(t) for t in tasks]
+        results = []
+        for f in futures:
+            try:
+                results.append(f.result())
+            except Exception as e:  # pragma: no cover  (tasks already catch)
+                log.warning("parallel provider failed: %s", e)
+                results.append([])
+        return results
+
+
 @app.route("/nearby")
 @rate_limit("120 per hour")
 @require_access
@@ -336,114 +528,17 @@ def nearby():
     if lat is None or lon is None:
         return jsonify({"error": "Missing coordinates"}), 400
 
-    devices = []
-
     if mode == "bluetooth":
-        # Wigle Bluetooth API call
-        try:
-            wigle_response = HTTP.get(
-                "https://api.wigle.net/api/v2/bluetooth/search",
-                params={"latrange1": lat - 0.01, "latrange2": lat + 0.01, "longrange1": lon - 0.01, "longrange2": lon + 0.01},
-                auth=(WIGLE_API_NAME, WIGLE_API_TOKEN),
-                timeout=HTTP_TIMEOUT,
-            )
-            if wigle_response.status_code == 200:
-                for device in wigle_response.json().get("results", []):
-                    name = device.get("name") or device.get("netid")
-                    classified_type = classify_device(name, "bluetooth")
-                    devices.append({
-                        "lat": device.get("trilat"),
-                        "lon": device.get("trilong"),
-                        "ssid": name,
-                        "bssid": device.get("netid"),
-                        "vendor": device.get("type") or ("Bluetooth Node" if classified_type == "bluetooth" else classified_type.replace("_", " ").title()),
-                        "signal": device.get("level"),
-                        "timestamp": device.get("lastupdt"),
-                        "type": classified_type,
-                    })
-            else:
-                log.warning("Wigle BT error: %s", wigle_response.status_code)
-        except Exception as e:
-            log.warning("Wigle BT exception: %s", e)
+        devices = _wigle_bt_devices(lat, lon)
     else:
-        # Wigle WiFi
-        try:
-            wigle_response = HTTP.get(
-                "https://api.wigle.net/api/v2/network/search",
-                params={"latrange1": lat - 0.01, "latrange2": lat + 0.01, "longrange1": lon - 0.01, "longrange2": lon + 0.01},
-                auth=(WIGLE_API_NAME, WIGLE_API_TOKEN),
-                timeout=HTTP_TIMEOUT,
-            )
-            if wigle_response.status_code == 200:
-                for network in wigle_response.json().get("results", []):
-                    name = network.get("ssid")
-                    classified_type = classify_device(name, "router")
-                    devices.append({
-                        "lat": network.get("trilat"),
-                        "lon": network.get("trilong"),
-                        "ssid": name,
-                        "bssid": network.get("netid"),
-                        "vendor": network.get("vendor"),
-                        "signal": network.get("level"),
-                        "timestamp": network.get("lastupdt"),
-                        "type": classified_type,
-                    })
-                # Augment devices with wpa-sec leaked data
-                devices = wpasec_kquery(devices)
-            else:
-                log.warning("Wigle error: %s", wigle_response.status_code)
-        except Exception as e:
-            log.warning("Wigle exception: %s", e)
-
-        # UnwiredLabs / OpenCellID geolocation (HTTPS, token in JSON body)
-        try:
-            opencell_response = HTTP.get(
-                "https://us1.unwiredlabs.com/v2/process.php",
-                json={"token": OPENCELLID_API_KEY, "lat": lat, "lon": lon, "address": 0},
-                timeout=HTTP_TIMEOUT,
-            )
-            if opencell_response.status_code == 200:
-                data = opencell_response.json()
-                if data.get("status") == "ok":
-                    for cell in data.get("cells", []):
-                        devices.append({
-                            "lat": cell.get("lat"),
-                            "lon": cell.get("lon"),
-                            "cell_id": str(cell.get("cellid")),
-                            "signal": cell.get("signal"),
-                            "accuracy": cell.get("accuracy"),
-                            "timestamp": cell.get("updated"),
-                            "type": "cell_tower",
-                        })
-                else:
-                    log.warning("OpenCellID API error: %s", data.get("message", "Unknown error"))
-            else:
-                log.warning("OpenCellID HTTP error: %s", opencell_response.status_code)
-        except Exception as e:
-            log.warning("OpenCellID exception: %s", e)
-
-        # Shodan
-        if SHODAN_API_KEY:
-            try:
-                shodan_response = HTTP.get(
-                    "https://api.shodan.io/shodan/host/search",
-                    params={"key": SHODAN_API_KEY, "query": f"geo:{lat},{lon},1", "limit": 5},
-                    timeout=HTTP_TIMEOUT,
-                )
-                if shodan_response.status_code == 200:
-                    for banner in shodan_response.json().get("matches", []):
-                        ip = banner["ip_str"]
-                        info = banner.get("data", "")
-                        classified_type = classify_device(info, "iot_device")
-                        devices.append({
-                            "lat": banner["location"]["latitude"],
-                            "lon": banner["location"]["longitude"],
-                            "ip": ip,
-                            "info": info[:50],
-                            "type": classified_type,
-                        })
-            except Exception as e:
-                log.warning("Shodan exception: %s", e)
+        # Independent providers run concurrently; results are merged in a fixed
+        # order (Wigle+wpa-sec, cells, Shodan) for deterministic output.
+        parts = _gather([
+            lambda: _wigle_wifi_devices(lat, lon),
+            lambda: _unwiredlabs_devices(lat, lon),
+            lambda: _shodan_geo_devices(lat, lon),
+        ])
+        devices = [d for part in parts for d in part]
 
     devices = _maybe_dummy(devices, mode, lat, lon)
     return jsonify({"devices": devices})
@@ -580,106 +675,22 @@ def search():
             lat, lon = map(float, query.split(","))
         except (ValueError, TypeError):
             return jsonify({"error": "Invalid location format"}), 400
-
-        try:
-            wigle_response = HTTP.get(
-                "https://api.wigle.net/api/v2/network/search",
-                params={"latrange1": lat - 0.01, "latrange2": lat + 0.01, "longrange1": lon - 0.01, "longrange2": lon + 0.01},
-                auth=(WIGLE_API_NAME, WIGLE_API_TOKEN),
-                timeout=HTTP_TIMEOUT,
-            )
-            if wigle_response.status_code == 200:
-                for network in wigle_response.json().get("results", []):
-                    devices.append(_wigle_network_to_device(network))
-                devices = wpasec_kquery(devices)
-            else:
-                log.warning("Wigle location error: %s", wigle_response.status_code)
-        except Exception as e:
-            log.warning("Wigle location exception: %s", e)
-
-        try:
-            opencell_response = HTTP.get(
-                "https://us1.unwiredlabs.com/v2/process.php",
-                json={"token": OPENCELLID_API_KEY, "lat": lat, "lon": lon, "address": 0},
-                timeout=HTTP_TIMEOUT,
-            )
-            if opencell_response.status_code == 200:
-                data = opencell_response.json()
-                if data.get("status") == "ok":
-                    for cell in data.get("cells", []):
-                        devices.append({
-                            "lat": cell.get("lat"),
-                            "lon": cell.get("lon"),
-                            "cell_id": str(cell.get("cellid")),
-                            "signal": cell.get("signal"),
-                            "accuracy": cell.get("accuracy"),
-                            "timestamp": cell.get("updated"),
-                            "type": "cell_tower",
-                        })
-                else:
-                    log.warning("OpenCellID location error: %s", data.get("message", "Unknown error"))
-            else:
-                log.warning("OpenCellID location HTTP error: %s", opencell_response.status_code)
-        except Exception as e:
-            log.warning("OpenCellID location exception: %s", e)
+        # Wigle (+wpa-sec) and the cell lookup are independent → run concurrently.
+        bbox = {"latrange1": lat - 0.01, "latrange2": lat + 0.01, "longrange1": lon - 0.01, "longrange2": lon + 0.01}
+        parts = _gather([
+            lambda: _wigle_search_devices(bbox),
+            lambda: _unwiredlabs_devices(lat, lon),
+        ])
+        devices = [d for part in parts for d in part]
 
     elif search_type == "bssid":
-        try:
-            wigle_response = HTTP.get(
-                "https://api.wigle.net/api/v2/network/search",
-                params={"netid": query},
-                auth=(WIGLE_API_NAME, WIGLE_API_TOKEN),
-                timeout=HTTP_TIMEOUT,
-            )
-            if wigle_response.status_code == 200:
-                for network in wigle_response.json().get("results", []):
-                    devices.append(_wigle_network_to_device(network))
-                devices = wpasec_kquery(devices)
-            else:
-                log.warning("Wigle BSSID error: %s", wigle_response.status_code)
-        except Exception as e:
-            log.warning("Wigle BSSID exception: %s", e)
+        devices = _wigle_search_devices({"netid": query})
 
     elif search_type == "ssid":
-        try:
-            wigle_response = HTTP.get(
-                "https://api.wigle.net/api/v2/network/search",
-                params={"ssid": query},
-                auth=(WIGLE_API_NAME, WIGLE_API_TOKEN),
-                timeout=HTTP_TIMEOUT,
-            )
-            if wigle_response.status_code == 200:
-                for network in wigle_response.json().get("results", []):
-                    devices.append(_wigle_network_to_device(network))
-                devices = wpasec_kquery(devices)
-            else:
-                log.warning("Wigle SSID error: %s", wigle_response.status_code)
-        except Exception as e:
-            log.warning("Wigle SSID exception: %s", e)
+        devices = _wigle_search_devices({"ssid": query})
 
     elif search_type == "network":
-        if SHODAN_API_KEY:
-            try:
-                shodan_response = HTTP.get(
-                    "https://api.shodan.io/shodan/host/search",
-                    params={"key": SHODAN_API_KEY, "query": query, "limit": 10},
-                    timeout=HTTP_TIMEOUT,
-                )
-                if shodan_response.status_code == 200:
-                    for host in shodan_response.json().get("matches", []):
-                        devices.append({
-                            "lat": host.get("location", {}).get("latitude"),
-                            "lon": host.get("location", {}).get("longitude"),
-                            "ip": host.get("ip_str"),
-                            "vendor": host.get("org"),
-                            "type": host.get("product", "iot"),
-                        })
-                else:
-                    log.warning("Shodan search error: %s", shodan_response.status_code)
-            except Exception as e:
-                log.warning("Shodan search exception: %s", e)
-        else:
-            log.info("Shodan search skipped: No API key provided")
+        devices = _shodan_query_devices(query)
 
     # Demo fallback is opt-in via ?demo=1
     if not devices and request.args.get("demo") in ("1", "true", "yes") and search_type in ["location", "ssid", "bssid", "network"]:

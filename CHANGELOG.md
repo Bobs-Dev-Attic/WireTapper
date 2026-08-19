@@ -4,6 +4,26 @@ All notable changes to WireTapper are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); this
 project uses [Semantic Versioning](https://semver.org/).
 
+## [0.7.0] — 2026-08-19
+
+### Changed (performance)
+- **Parallelized the upstream provider calls.** `/nearby` (wifi) and `/searchzz`
+  (location) previously called Wigle → wpa-sec → OpenCellID → Shodan
+  **sequentially**; the independent ones now run **concurrently** via a
+  `ThreadPoolExecutor` over the shared, thread-safe `requests.Session`. Wall-clock
+  latency drops from roughly the *sum* of the calls to about the *slowest* one —
+  which also relieves the Vercel function-timeout pressure noted in `DEPLOY.md`.
+- Each provider is now its own function (`_wigle_wifi_devices`,
+  `_unwiredlabs_devices`, `_shodan_geo_devices`, `_wigle_search_devices`,
+  `_shodan_query_devices`, `_wigle_bt_devices`) that handles its own errors and
+  takes lat/lon as args (never touches the thread-local `request`). Results are
+  merged in a **fixed order**, so output stays deterministic. No API/contract
+  change; `wpa-sec` enrichment stays attached to its Wigle results.
+
+### Added
+- Test `test_nearby_runs_providers_concurrently` — a wall-clock assertion proving
+  the providers run in parallel, not serially (23 tests total).
+
 ## [0.6.0] — 2026-08-19
 
 ### Added

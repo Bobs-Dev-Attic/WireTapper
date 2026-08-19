@@ -66,13 +66,14 @@ unimplemented endpoint.
 ```
 Browser click on map
   → GET /nearby?lat&lon&mode=wifi
-    → Wigle network/search (bbox ±0.01°)         → map results → devices[]
-      → wpasec_kquery(devices): sha1(bssid+hex(ssid)), send 4‑char prefixes
-        to wpa-sec/bmacssid, match returned suffixes → device.leaked=True
-    → UnwiredLabs process.php (cells)             → devices[]
-    → Shodan host/search geo:lat,lon,1 (if key)   → devices[]
+    → _gather() runs 3 providers CONCURRENTLY (v0.7.0), merges in fixed order:
+        1. _wigle_wifi_devices  → Wigle network/search (bbox ±0.01°)
+             → wpasec_kquery: sha1(bssid+hex(ssid)), send 4-char prefixes to
+               wpa-sec/bmacssid, match suffixes → device.leaked=True
+        2. _unwiredlabs_devices → UnwiredLabs process.php (cells)
+        3. _shodan_geo_devices  → Shodan host/search geo:lat,lon,1 (if key)
   → if devices empty AND ?demo=1: inject DUMMY_DATA (opt-in since v0.3.0)
-  → JSON {devices:[...]}
+  → JSON {devices:[...]}   (wall-clock ≈ slowest provider, not the sum)
 Browser updateMap(): filter by checkboxes → Leaflet markers + sidebar cards
   (ssid/vendor/bssid escaped via escapeHtml() since v0.2.0)
 ```
