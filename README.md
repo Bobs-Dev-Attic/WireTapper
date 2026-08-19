@@ -93,44 +93,52 @@ WireTapper integrates with several external services to provide intelligence. Yo
 
 ## 🚀 Installation
 
-Follow these steps to get WireTapper up and running:
+**Requires Python 3.10+.** Full walkthrough (prerequisites, obtaining each API
+key, troubleshooting) in **[`docs/INSTALL.md`](docs/INSTALL.md)**; every setting
+is documented in **[`docs/CONFIGURATION.md`](docs/CONFIGURATION.md)**.
 
-1. **Clone the repository:**
+1. **Clone:**
    ```bash
    git clone https://github.com/h9zdev/WireTapper.git
    cd WireTapper
    ```
 
-2. **Install dependencies:**
-   It is recommended to use a virtual environment.
+2. **Virtual environment + dependencies:**
    ```bash
-   pip install -r requirements.txt
+   python3 -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
+   pip install -U pip
+   pip install -r requirements.txt                       # runtime
+   pip install -r requirements-dev.txt                   # optional: tests + ruff
    ```
 
-3. **Configure API Keys and Run:**
-
-   Choose one of the following methods to configure your API keys and run the application:
-
-   Keys come from **environment variables** (never hardcode secrets in source —
-   see [`docs/SECURITY_AUDIT.md`](docs/SECURITY_AUDIT.md)). Copy `.env.example`
-   to `.env` and fill it in — `app.py` auto-loads `.env` via `python-dotenv`.
-   Alternatively, export the variables in your shell:
+3. **Configure** — keys come from **environment variables** (never hardcode
+   secrets — see [`docs/SECURITY_AUDIT.md`](docs/SECURITY_AUDIT.md)). Copy the
+   template and fill it in; `app.py` auto-loads `.env` via `python-dotenv`:
    ```bash
-   export WIGLE_API_NAME="your_wigle_api_name"
-   export WIGLE_API_TOKEN="your_wigle_api_token"
-   export OPENCELLID_API_KEY="your_opencellid_api_key"
-   export SHODAN_API_KEY="your_shodan_api_key"
+   cp .env.example .env      # then edit .env — see docs/CONFIGURATION.md
+   ```
+   Or export the vars in your shell instead:
+   ```bash
+   export WIGLE_API_NAME=... WIGLE_API_TOKEN=... OPENCELLID_API_KEY=... SHODAN_API_KEY=...
    ```
 
-   Then start the server (`app.py` is the single backend; `app-env.py` is a
-   backwards-compatible alias that imports it):
+4. **Run** (`app.py` is the single backend; `app-env.py` is a compatible alias):
    ```bash
-   python app.py           # dev only (localhost, debugger off)
+   python app.py                               # dev only — localhost, debugger off
    ```
-   For anything beyond local use, run behind a production WSGI server:
+   For anything beyond local use, run behind a production WSGI server (see
+   [`docs/DEPLOY.md`](docs/DEPLOY.md)):
    ```bash
    gunicorn -w 2 -b 127.0.0.1:8080 app:app
    ```
+
+5. **Open** <http://localhost:8080/map-w>. No keys yet? Add `?demo=1` to
+   `/nearby` or `/searchzz` to see sample data.
+
+> **Before exposing it publicly:** set `WIRETAPPER_ACCESS_TOKEN`, use a shared
+> `RATE_LIMIT_STORAGE`, and keep `FLASK_DEBUG=0` — see
+> [`docs/CONFIGURATION.md`](docs/CONFIGURATION.md) and
+> [`docs/DEPLOY.md`](docs/DEPLOY.md).
 
    > **Server defaults (SEC-01):** binds `127.0.0.1:8080` with the debugger
    > **off**. For local development only you may opt in via `FLASK_HOST`,

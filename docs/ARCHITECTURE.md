@@ -19,7 +19,9 @@ they don't re‑read every file. Keep this in sync when routes/flows change.
   gitignored; see `.env.example`). Keys: `WIGLE_API_NAME/TOKEN`,
   `OPENCELLID_API_KEY`, `SHODAN_API_KEY`. Server/security knobs: `FLASK_HOST/
   PORT/DEBUG`, `WIRETAPPER_ACCESS_TOKEN`, `RATE_LIMIT_DEFAULT`,
-  `HTTP_CONNECT_TIMEOUT`, `HTTP_READ_TIMEOUT`, `MAX_QUERY_LEN`.
+  `HTTP_CONNECT_TIMEOUT`, `HTTP_READ_TIMEOUT`, `MAX_QUERY_LEN`,
+  `SECURITY_HEADERS`, `CSP_ENABLED`, `LOG_LEVEL`. Full reference:
+  `docs/CONFIGURATION.md`; setup: `docs/INSTALL.md`.
 - **Deps:** `requirements.txt` (pinned) = Flask, Werkzeug, requests,
   python-dotenv, Flask-Limiter, gunicorn. `requirements-dev.txt` = pytest.
   dotenv/limiter imported defensively.
