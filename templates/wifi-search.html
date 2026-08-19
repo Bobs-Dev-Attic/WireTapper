@@ -2130,9 +2130,9 @@
          (localStorage), requiring acknowledgement that WireTapper queries only
          public OSINT databases and is for authorized, lawful use. This is a
          notice, not a legal control — see PRIVACY.md and docs/LEGAL.md. -->
-    <div id="consent-overlay" role="dialog" aria-modal="true" aria-labelledby="consent-title" hidden
+    <div id="consent-overlay" role="dialog" aria-modal="true" aria-labelledby="consent-title"
         style="position:fixed; inset:0; z-index:3000; background:rgba(0,0,0,0.85);
-               display:flex; align-items:center; justify-content:center; padding:20px;">
+               display:none; align-items:center; justify-content:center; padding:20px;">
         <div style="max-width:560px; background:var(--glass-bg); border:1px solid var(--border-color);
                     border-radius:6px; padding:24px; box-shadow:0 0 30px rgba(0,0,0,0.6);">
             <h2 id="consent-title" style="font-size:16px; letter-spacing:2px; text-transform:uppercase;
@@ -2163,11 +2163,15 @@
             let acknowledged = false;
             try { acknowledged = localStorage.getItem(KEY) === '1'; } catch (e) { /* storage blocked */ }
             if (acknowledged) return;
-            overlay.hidden = false;
+            // Toggle visibility via inline `display` — NOT the [hidden]
+            // attribute. The overlay sets an inline `display`, which overrides
+            // the UA `[hidden] { display:none }` rule, so `overlay.hidden = true`
+            // would not actually hide it (this is what left the dialog stuck).
+            overlay.style.display = 'flex';
             const accept = document.getElementById('consent-accept');
             accept.addEventListener('click', () => {
                 try { localStorage.setItem(KEY, '1'); } catch (e) { /* ignore */ }
-                overlay.hidden = true;
+                overlay.style.display = 'none';
             });
             accept.focus();
         })();
