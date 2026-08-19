@@ -5,7 +5,9 @@ WireTapper is configured entirely through **environment variables** (loaded from
 is the complete list; `.env.example` is a ready-to-copy template.
 
 **Precedence:** a variable exported in the shell overrides the same key in
-`.env`. Unset variables fall back to the defaults below.
+`.env`. Unset variables fall back to the defaults below. A variable set to an
+**empty/blank value** is treated the same as unset (the default is used) — so
+it's safe to leave keys blank in a platform's env UI, or omit them entirely.
 
 ---
 

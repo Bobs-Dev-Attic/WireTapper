@@ -140,6 +140,27 @@ def test_access_gate(app_module):
     assert c.get("/nearby?lat=1&lon=1&access_token=wrong").status_code == 401
 
 
+# ---- robust env parsing (set-but-empty numeric vars must not crash import)
+
+@pytest.mark.parametrize("var", [
+    "HTTP_CONNECT_TIMEOUT", "HTTP_READ_TIMEOUT", "MAX_QUERY_LEN", "LOG_LEVEL",
+])
+def test_empty_env_var_does_not_crash_import(monkeypatch, var):
+    # A blank value (e.g. an empty key left in a platform's env UI) previously
+    # made float('')/int('')/basicConfig('') raise at import → 500 everywhere.
+    monkeypatch.setenv(var, "")
+    m = _load_app_module()   # must not raise
+    assert m.app.test_client().get("/map-w").status_code == 200
+
+
+def test_invalid_numeric_env_falls_back_to_default(monkeypatch):
+    monkeypatch.setenv("HTTP_CONNECT_TIMEOUT", "not-a-number")
+    monkeypatch.setenv("MAX_QUERY_LEN", "abc")
+    m = _load_app_module()
+    assert m.HTTP_TIMEOUT[0] == 3.05
+    assert m.MAX_QUERY_LEN == 256
+
+
 # ---- security headers (SEC-08)
 
 def test_security_headers_present(client):
