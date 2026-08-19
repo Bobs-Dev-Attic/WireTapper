@@ -10,6 +10,7 @@ import json
 import logging
 import os
 import random
+import re
 from hashlib import sha1
 
 import requests
@@ -134,6 +135,38 @@ if not API_ACCESS_TOKEN:
         "(and send X-API-Key) before exposing this app beyond localhost."
     )
 
+# SEC-08: security headers + Content-Security-Policy. The CSP enumerates the
+# CDNs / tile + font hosts the template actually uses. It still needs
+# 'unsafe-inline' because all app CSS/JS is inline in the template; that relaxes
+# once assets are self-hosted or moved to nonces (SEC-09 follow-up). Toggle the
+# whole thing with SECURITY_HEADERS=0 and the CSP alone with CSP_ENABLED=0.
+_CSP = "; ".join([
+    "default-src 'self'",
+    "script-src 'self' 'unsafe-inline' https://unpkg.com https://cdnjs.cloudflare.com",
+    "style-src 'self' 'unsafe-inline' https://unpkg.com https://cdnjs.cloudflare.com https://fonts.googleapis.com",
+    "font-src 'self' data: https://fonts.gstatic.com https://cdnjs.cloudflare.com",
+    "img-src 'self' data: blob: https://unpkg.com https://haybnz.web.app "
+    "https://*.tile.openstreetmap.org https://server.arcgisonline.com https://*.google.com",
+    "connect-src 'self'",
+    "object-src 'none'",
+    "base-uri 'self'",
+    "frame-ancestors 'none'",
+])
+
+
+@app.after_request
+def set_security_headers(response):
+    if os.getenv("SECURITY_HEADERS", "1").lower() in ("0", "false", "no"):
+        return response
+    response.headers.setdefault("X-Content-Type-Options", "nosniff")
+    response.headers.setdefault("X-Frame-Options", "DENY")
+    response.headers.setdefault("Referrer-Policy", "no-referrer")
+    response.headers.setdefault("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
+    response.headers.setdefault("Cross-Origin-Opener-Policy", "same-origin")
+    if os.getenv("CSP_ENABLED", "1").lower() not in ("0", "false", "no"):
+        response.headers.setdefault("Content-Security-Policy", _CSP)
+    return response
+
 # Dummy data for testing (opt-in via ?demo=1; see _maybe_dummy)
 DUMMY_DATA = [
     {
@@ -184,22 +217,42 @@ def wifi_map():
     return render_template("wifi-search.html")
 
 
+# Ordered classification rules. Order matters (first match wins) — dashcam
+# before camera so "DASH CAM" isn't caught by "CAM"; car before tv so "SYNC"
+# etc. resolve first. Keywords are matched on token boundaries (digits+letters
+# count as one token), so "CAR" no longer matches OSCAR/SCART and "LG" no longer
+# matches FLAGSHIP — the main false-positive source in the old substring logic.
+_CLASSIFY_RULES = [
+    ("car", ["CAR", "FORD", "TOYOTA", "BMW", "TESLA", "SYNC", "MAZDA", "HONDA", "UCONNECT", "HYUNDAI", "LEXUS", "NISSAN"]),
+    ("dashcam", ["DASHCAM", "DASH CAM", "DVR", "70MAI", "VIOFO", "GARMIN DASH"]),
+    ("tv", ["TV", "BRAVIA", "VIZIO", "SAMSUNG", "LG", "ROKU", "FIRE", "SMARTVIEW", "KDL"]),
+    ("headphone", ["HEADPHONE", "EARBUD", "BOSE", "SONY", "BEATS", "AUDIO", "AIRPOD", "JBL", "SENNHEISER"]),
+    ("camera", ["CAM", "SURVEILLANCE", "SECURITY", "NEST", "RING", "ARLO", "HIKVISION", "DAHUA", "REOLINK"]),
+    ("iot", ["WATCH", "FITBIT", "GARMIN", "WHOOP"]),
+]
+
+
+def _compile_rules(rules):
+    compiled = []
+    for label, keywords in rules:
+        # A token boundary here means "not flanked by another letter/digit".
+        pattern = re.compile(
+            r"(?<![A-Z0-9])(?:" + "|".join(re.escape(k) for k in keywords) + r")(?![A-Z0-9])"
+        )
+        compiled.append((label, pattern))
+    return compiled
+
+
+_CLASSIFY_COMPILED = _compile_rules(_CLASSIFY_RULES)
+
+
 def classify_device(name, original_type):
     if not name:
         return original_type
     name_upper = name.upper()
-    if any(k in name_upper for k in ["CAR", "FORD", "TOYOTA", "BMW", "TESLA", "SYNC", "MAZDA", "HONDA", "UCONNECT", "HYUNDAI", "LEXUS", "NISSAN"]):
-        return "car"
-    if any(k in name_upper for k in ["TV", "BRAVIA", "VIZIO", "SAMSUNG", "LG", "ROKU", "FIRE", "SMARTVIEW", "KDL-"]):
-        return "tv"
-    if any(k in name_upper for k in ["HEADPHONE", "EARBUD", "BOSE", "SONY", "BEATS", "AUDIO", "AIRPOD", "JBL", "SENNHEISER"]):
-        return "headphone"
-    if any(k in name_upper for k in ["DASHCAM", "DASH CAM", "DVR", "70MAI", "VIOFO", "GARMIN DASH"]):
-        return "dashcam"
-    if any(k in name_upper for k in ["CAM", "SURVEILLANCE", "SECURITY", "NEST", "RING", "ARLO", "HIKVISION", "DAHUA", "REOLINK"]):
-        return "camera"
-    if any(k in name_upper for k in ["WATCH", "FITBIT", "GARMIN", "WHOOP"]):
-        return "iot"
+    for label, pattern in _CLASSIFY_COMPILED:
+        if pattern.search(name_upper):
+            return label
     return original_type
 
 

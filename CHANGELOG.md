@@ -4,6 +4,50 @@ All notable changes to WireTapper are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); this
 project uses [Semantic Versioning](https://semver.org/).
 
+## [0.4.0] — 2026-08-19
+
+Best-practices + UX-honesty pass (**P2** from [`TODO.md`](TODO.md)).
+
+### Security
+- **SEC-08** — Added security headers on every response (`X-Content-Type-Options`,
+  `X-Frame-Options: DENY`, `Referrer-Policy: no-referrer`, `Permissions-Policy`,
+  `Cross-Origin-Opener-Policy`) plus a **Content-Security-Policy** scoped to the
+  CDN/tile/font hosts the template actually uses. Toggle via `SECURITY_HEADERS`
+  / `CSP_ENABLED`. (CSP still allows `'unsafe-inline'` because all page CSS/JS is
+  inline; that tightens once assets are self-hosted/nonce'd.)
+- **SEC-09 (partial)** — Pinned all Python deps in `requirements.txt` (+ added
+  `gunicorn`). Added `scripts/gen_sri.sh` to generate Subresource Integrity
+  hashes for the CDN `<script>`/`<link>` tags — run it where network is
+  available and paste the `integrity=`/`crossorigin` attributes in. (Hashes
+  can't be computed in this sandbox; wrong values would break asset loading.)
+
+### Changed / UX
+- **Removed the client telemetry beacon** that POSTed the `username` cookie,
+  click text, and dwell time to a non-existent `/log-activity` on every
+  interaction (privacy + dead endpoint).
+- **Stopped the failing on-load `/api/username` fetch** and the `/logout` link
+  (neither endpoint exists); header now shows a static "Guest".
+- **Chat no longer POSTs to the non-existent `/chatgpt`** — it shows an honest
+  "not available in this build" notice, removing the last live `innerHTML`
+  server-reply sink (SEC-10 pre-empted for this build).
+- **Dead sidebar modules are marked "SOON"** (dimmed, `cursor:not-allowed`) and
+  show a "Module coming soon" toast instead of silent dead clicks.
+- **Improved `classify_device`** — token/word-boundary matching with an ordered
+  rule set. `OSCAR`/`SCART` no longer classify as "car", `FLAGSHIP` no longer as
+  "tv", `DASH CAM` resolves to dashcam (not camera).
+
+### Added
+- `requirements.txt` (renamed from `WireTapper.txt`, now pinned) and
+  `requirements-dev.txt`.
+- **First test suite** — `tests/test_app.py` (pytest, 20 tests) covering
+  classification, coordinate handling, demo opt-in, the access gate, security
+  headers, and rate limiting. Outbound HTTP is stubbed (no keys/network needed).
+  (Partially addresses the P3 "tests/CI" gap; CI wiring still TODO.)
+
+### Notes / not yet addressed (see TODO.md)
+- SRI `integrity` attributes still need to be generated + pasted (SEC-09).
+- CI, privacy notice, accessibility pass, and marketing/branding remain **P3**.
+
 ## [0.3.0] — 2026-08-19
 
 Robustness + hardening pass (**P1** from [`TODO.md`](TODO.md)). Consolidates the

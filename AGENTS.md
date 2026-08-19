@@ -17,8 +17,8 @@ queue in [`TODO.md`](TODO.md); system map in
   `HTTP` session, rate limiting, access gate). Edit here.
 - `app-env.py` — thin shim: `from app import app`. No logic here.
 - `templates/wifi-search.html` — entire frontend (inline CSS/JS).
-- `WireTapper.txt` — deps (Flask, requests, python-dotenv, Flask-Limiter; still
-  unpinned). `.env` — gitignored; auto-loaded; see `.env.example`.
+- `requirements.txt` — pinned deps (+ gunicorn); `requirements-dev.txt` — pytest.
+  `tests/` — pytest suite (HTTP stubbed). `.env` — gitignored; auto-loaded.
 
 ## Gotchas (save yourself a wrong turn)
 1. `app.py` is canonical; `app-env.py` only imports it (consolidated v0.3.0).

@@ -18,9 +18,14 @@ not formal scoring. Cross‑reference IDs are used in [`/TODO.md`](../TODO.md).
 - ✅ **Fixed in v0.3.0:** SEC‑03 (rate limit + optional token gate + query
   bounding), SEC‑05 (HTTPS), SEC‑06 (no error reflection), SEC‑07 (timeouts +
   shared session).
-- ⬜ **Open:** SEC‑08 (headers/CSP), SEC‑09 (dep pinning + SRI), SEC‑10 (CSRF/
-  sanitize `/chatgpt` before it ships). SEC‑03 follow‑up: frontend does not send
-  `X-API-Key` yet, so the gate needs a real auth story to be user‑facing.
+- ✅ **Fixed in v0.4.0:** SEC‑08 (security headers + CSP); SEC‑10 pre‑empted for
+  this build (chat no longer renders a server reply — the `/chatgpt` call was
+  removed). **SEC‑09 partial:** Python deps pinned; CDN SRI attributes still need
+  generating (`scripts/gen_sri.sh`).
+- ⬜ **Open:** SEC‑09 SRI attributes (needs a networked run of the generator).
+  SEC‑03 follow‑up: frontend doesn't send `X-API-Key` yet, so the gate needs a
+  real auth story to be user‑facing. SEC‑10 must be re‑checked if `/chatgpt` is
+  ever implemented (sanitize the reply / avoid `innerHTML`).
 
 ---
 

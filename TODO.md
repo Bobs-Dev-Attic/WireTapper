@@ -53,26 +53,31 @@ Legend: 🔴 critical · 🟠 high · 🟡 medium · ⚪ low · effort ⏱ S/M/L
 - [x] 🟡 **(pulled forward) Demo data opt‑in (`?demo=1`).** ⏱S Done (v0.3.0).
 - [x] 🟡 **(pulled forward) Harden `wpasec_kquery`.** ⏱S Done (v0.3.0).
 
-## P2 — Robustness, UX honesty, best practices
+## P2 — Robustness, UX honesty, best practices ✅ DONE in v0.4.0
 
 - [x] 🟡 **Make dummy data opt‑in (`?demo=1`).** Done in v0.3.0.
 - [x] 🟡 **SEC‑06 Stop reflecting upstream error text / tracebacks.** Done in v0.3.0.
 - [x] 🟡 **Harden `wpasec_kquery`** — `.get()` + skip malformed. Done in v0.3.0.
-- [ ] 🟡 **SEC‑08 Add security headers + CSP** (Flask‑Talisman). ⏱M
-- [ ] 🟡 **SEC‑09 Pin Python deps (hashes) + add SRI to CDN assets** (or self‑host). ⏱M
-- [ ] 🟡 **Rename `WireTapper.txt` → `requirements.txt`; pin versions; add WSGI server.** ⏱S
-  (Deps now include `python-dotenv` + `Flask-Limiter`; still unpinned/unrenamed.)
-- [ ] 🟡 **Improve `classify_device`** — token/word‑boundary match, ordered rules,
-  reduce false positives (`OSCAR`→car, `FLAGSHIP`→LG). ⏱M
-- [ ] 🟡 **Resolve dead frontend routes** — implement, hide, or label the ~12
-  nav/JS endpoints (`/crmx`, `/api/username`, `/log-activity`, `/chatgpt`, …). ⏱M
-- [ ] 🟡 **Remove or disclose client telemetry beacon** (`/log-activity` sends the
-  username cookie + click text + dwell time). ⏱S
+- [x] 🟡 **SEC‑08 Add security headers + CSP.** Done (v0.4.0): manual
+  `after_request` headers + scoped CSP (no Talisman dep). Toggle via
+  `SECURITY_HEADERS`/`CSP_ENABLED`.
+- [~] 🟡 **SEC‑09 Pin Python deps + add SRI to CDN assets.** Python deps pinned
+  (v0.4.0); `scripts/gen_sri.sh` added. ↪ **Remaining:** run the script (needs
+  network) and paste the `integrity=`/`crossorigin` attrs into the template.
+- [x] 🟡 **Rename `WireTapper.txt` → `requirements.txt`; pin; add WSGI server.**
+  Done (v0.4.0): pinned + `gunicorn` added; README shows the gunicorn command.
+- [x] 🟡 **Improve `classify_device`** — token/word‑boundary match, ordered
+  rules. Done (v0.4.0); covered by tests.
+- [x] 🟡 **Resolve dead frontend routes** — Done (v0.4.0): sidebar modules marked
+  "SOON" + toast; failing `/api/username`, `/log-activity`, `/chatgpt` calls
+  removed. ↪ Implementing the actual modules stays future work.
+- [x] 🟡 **Remove client telemetry beacon.** Done (v0.4.0): removed entirely.
 
 ## P3 — Quality, product, compliance
 
-- [ ] ⚪ **Add tests + CI** — contract tests for provider→device mapping; a
-  `SessionStart` hook / GitHub Action running lint + tests. ⏱M
+- [~] ⚪ **Add tests + CI** — `tests/test_app.py` (pytest, 20 tests) added in
+  v0.4.0. ↪ **Remaining:** a GitHub Action / `SessionStart` hook to run lint +
+  tests on push, and contract tests for provider→device mapping. ⏱M
 - [ ] ⚪ **Add linter/formatter** (ruff + black) config. ⏱S
 - [ ] ⚪ **Privacy notice + lawful‑use interstitial** — state lawful basis, data
   retention, and an "authorized networks only" acknowledgement. ⏱M

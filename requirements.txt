@@ -1,0 +1,11 @@
+# WireTapper runtime dependencies (pinned — SEC-09).
+# Regenerate with: pip install -U <pkg> && pip freeze | grep -i <pkg>
+Flask==3.1.3
+Werkzeug==3.1.8          # transitive (Flask), pinned for reproducibility
+requests==2.33.1
+python-dotenv==1.2.3     # loads .env (app.py calls load_dotenv())
+Flask-Limiter==4.1.1     # per-IP rate limiting on data endpoints (SEC-03)
+
+# Production WSGI server (do NOT use the Flask dev server publicly — SEC-01):
+#   gunicorn -w 2 -b 127.0.0.1:8080 app:app
+gunicorn==23.0.0

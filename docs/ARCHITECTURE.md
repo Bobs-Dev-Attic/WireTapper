@@ -18,11 +18,15 @@ they don't re‑read every file. Keep this in sync when routes/flows change.
   `OPENCELLID_API_KEY`, `SHODAN_API_KEY`. Server/security knobs: `FLASK_HOST/
   PORT/DEBUG`, `WIRETAPPER_ACCESS_TOKEN`, `RATE_LIMIT_DEFAULT`,
   `HTTP_CONNECT_TIMEOUT`, `HTTP_READ_TIMEOUT`, `MAX_QUERY_LEN`.
-- **Deps:** `WireTapper.txt` = `Flask`, `requests`, `python-dotenv`,
-  `Flask-Limiter` (still unpinned — P2). dotenv/limiter imported defensively.
+- **Deps:** `requirements.txt` (pinned) = Flask, Werkzeug, requests,
+  python-dotenv, Flask-Limiter, gunicorn. `requirements-dev.txt` = pytest.
+  dotenv/limiter imported defensively.
 - **Cross‑cutting:** all outbound calls use one shared `requests.Session`
-  (`HTTP`) with timeouts + retry/pooling. Data endpoints are rate‑limited and
-  behind an optional `X-API-Key` gate. Demo data is opt‑in via `?demo=1`.
+  (`HTTP`) with timeouts + retry/pooling. Every response carries security
+  headers + a CSP (`after_request`). Data endpoints are rate‑limited and behind
+  an optional `X-API-Key` gate. Demo data is opt‑in via `?demo=1`.
+- **Tests:** `tests/test_app.py` (pytest) — `pytest` from repo root; HTTP stubbed.
+- **Prod:** `gunicorn -w 2 -b 127.0.0.1:8080 app:app` (never the dev server).
 
 ## External services
 | Service | Used for | Endpoint(s) | Auth |
@@ -42,10 +46,13 @@ they don't re‑read every file. Keep this in sync when routes/flows change.
 | `/api/geo/towers?lat&lon` | GET | towers in ~5km bbox | OpenCellID getInArea |
 | `/api/geo/celltower?lat&lon` | GET | towers in ~1km bbox | OpenCellID ajax GeoJSON |
 
-## Routes referenced by the frontend but **NOT implemented** (all 404)
-`/` · `/crmx` · `/surveillance` · `/profiles` · `/geo` · `/cctv` · `/mobile` ·
-`/social` · `/alerts` · `/fit` · `/settings` · `/logout` · `/api/username` ·
-`/log-activity` (POST beacon) · `/chatgpt` (POST). Treat these as TODO/stubs.
+## Routes referenced by the frontend but **NOT implemented**
+Sidebar links (`/crmx`, `/surveillance`, `/profiles`, `/geo`, `/cctv`,
+`/mobile`, `/social`, `/alerts`, `/fit`, `/settings`, `/`, `/logout`) — as of
+v0.4.0 these are labeled "SOON" and intercepted with a toast, not live links.
+The previously auto‑firing calls to `/api/username`, `/log-activity` (telemetry
+beacon), and `/chatgpt` were **removed** in v0.4.0. Don't add calls back to any
+unimplemented endpoint.
 
 ## Request → response flow (`/nearby`, wifi mode)
 ```

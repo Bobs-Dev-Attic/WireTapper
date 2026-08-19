@@ -89,7 +89,7 @@ Follow these steps to get WireTapper up and running:
 2. **Install dependencies:**
    It is recommended to use a virtual environment.
    ```bash
-   pip install -r WireTapper.txt
+   pip install -r requirements.txt
    ```
 
 3. **Configure API Keys and Run:**
@@ -110,7 +110,11 @@ Follow these steps to get WireTapper up and running:
    Then start the server (`app.py` is the single backend; `app-env.py` is a
    backwards-compatible alias that imports it):
    ```bash
-   python app.py           # or: python app-env.py
+   python app.py           # dev only (localhost, debugger off)
+   ```
+   For anything beyond local use, run behind a production WSGI server:
+   ```bash
+   gunicorn -w 2 -b 127.0.0.1:8080 app:app
    ```
 
    > **Server defaults (SEC-01):** binds `127.0.0.1:8080` with the debugger

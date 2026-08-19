@@ -20,51 +20,11 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
     <!-- Font Awesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
-    <script>
-        document.addEventListener("DOMContentLoaded", function () {
-            const startTime = Date.now();
-            const username = document.cookie.split('; ').find(row => row.startsWith('username='))?.split('=')[1] || 'anonymous';
-            const page = window.location.pathname;
-
-            function sendActivity(event, details = '') {
-                const duration = ((Date.now() - startTime) / 1000).toFixed(2);
-                fetch('/log-activity', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        username: username,
-                        page: page,
-                        event: event,
-                        details: details,
-                        duration: duration
-                    })
-                });
-            }
-
-            // Log page view
-            sendActivity('page_view');
-
-            // Log clicks
-            document.addEventListener('click', function (e) {
-                const target = e.target.closest('button, a, input[type="submit"]');
-                if (target) {
-                    const text = (target.innerText || target.value || target.href || '').substring(0, 100);
-                    sendActivity('click', text);
-                }
-            });
-
-            // Log before unload (time spent)
-            window.addEventListener('beforeunload', function () {
-                const duration = ((Date.now() - startTime) / 1000).toFixed(2);
-                navigator.sendBeacon('/log-activity', JSON.stringify({
-                    username: username,
-                    page: page,
-                    event: 'page_leave',
-                    duration: duration
-                }));
-            });
-        });
-    </script>
+    <!-- Client-side activity telemetry removed (P2): it beaconed the `username`
+         cookie, click text, and dwell time to a non-existent `/log-activity`
+         endpoint every interaction — user surveillance with no disclosure and
+         no backend. If analytics are ever needed, add them behind an explicit,
+         documented privacy notice and consent. -->
 
 
     <style>
@@ -375,6 +335,24 @@
         .menu-icon {
             width: 18px;
             height: 18px;
+        }
+
+        /* P2: unimplemented nav modules are visually marked "coming soon". */
+        .menu-item.coming-soon {
+            opacity: 0.45;
+            cursor: not-allowed;
+        }
+
+        .menu-item.coming-soon span:last-child::after {
+            content: 'SOON';
+            margin-left: 8px;
+            font-size: 8px;
+            letter-spacing: 1px;
+            color: var(--text-dim);
+            border: 1px solid var(--border-color);
+            padding: 1px 4px;
+            border-radius: 2px;
+            vertical-align: middle;
         }
 
         /* ---------- Main Content ---------- */
@@ -1321,49 +1299,15 @@
                 </div>
                 <div class="logo-text">
                     <h2>HayOS H9 EYE</h2>
-                    <p id="user-info">Created by Hayden |</p>
+                    <p id="user-info">Created by Hayden | Guest</p>
+                    <!-- P2: removed the on-load fetch to `/api/username` and the
+                         `/logout` link — neither endpoint exists, so every page
+                         load fired a failing request. Restore this (with real
+                         auth) when a login/session backend is implemented. -->
                     <script>
-                        (async function () {
-                            try {
-                                const res = await fetch('/api/username', { cache: 'no-store' });
-                                const data = await res.json();
-
-                                const userInfo = document.getElementById('user-info');
-                                const deviceCount = document.getElementById('device-counts');
-                                const statItem = document.querySelector('.stat-item');
-
-                                if (data && data.username) {
-                                    // ✅ Insert username inside <p id="user-info">
-                                    userInfo.innerHTML = `Created by Hayden | ${data.username}`;
-
-                                    // ✅ Update device count
-                                    deviceCount.textContent = 'Online';
-
-                                    // ✅ Add logout icon inside stat-item
-                                    const logoutBtn = document.createElement('a');
-                                    logoutBtn.href = '/logout';
-                                    logoutBtn.innerHTML = '<i class="fas fa-sign-out-alt"></i>';
-                                    logoutBtn.title = 'Logout';
-                                    logoutBtn.style.marginLeft = '10px';
-                                    logoutBtn.style.color = '#00FFFF';
-                                    logoutBtn.style.cursor = 'pointer';
-                                    logoutBtn.style.textDecoration = 'none';
-                                    logoutBtn.style.fontSize = '16px';
-                                    logoutBtn.addEventListener('mouseenter', () => logoutBtn.style.color = '#FF4444');
-                                    logoutBtn.addEventListener('mouseleave', () => logoutBtn.style.color = '#00FFFF');
-
-                                    statItem.appendChild(logoutBtn);
-                                } else {
-                                    userInfo.innerHTML = 'Created by Hayden | Guest';
-                                    deviceCount.textContent = 'Offline';
-                                }
-                            } catch (err) {
-                                console.warn('Failed to fetch username:', err);
-                                const userInfo = document.getElementById('user-info');
-                                const deviceCount = document.getElementById('device-count');
-                                if (userInfo) userInfo.innerHTML = 'Created by Hayden | Guest';
-                                if (deviceCount) deviceCount.textContent = 'Offline';
-                            }
+                        (function () {
+                            const deviceCount = document.getElementById('device-counts');
+                            if (deviceCount) deviceCount.textContent = 'Offline';
                         })();
                     </script>
 
@@ -2114,30 +2058,12 @@
             addMessage(userText, 'user');
             input.value = '';
 
-            // Show typing
-            addMessage('typing', 'bot');
-
-            // Get web search state
-            const webSearchEnabled = document.getElementById('web-search-enabled').checked;
-
-            try {
-                const res = await fetch('/chatgpt', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        message: userText,
-                        web_search: webSearchEnabled  // NEW: send flag
-                    })
-                });
-                const data = await res.json();
-
-                messages.lastElementChild.remove(); // remove typing
-                addMessage(data.reply, 'bot');
-            } catch (err) {
-                messages.lastElementChild.remove();
-                addMessage('Error – try again', 'bot');
-                console.error(err);
-            }
+            // P2: the `/chatgpt` backend does not exist in this build, so we no
+            // longer POST to it (that fired a failing request and, once a
+            // backend returned HTML, would have been an XSS sink — SEC-10).
+            // Show an honest "unavailable" notice instead. When a real,
+            // sanitized assistant endpoint is added, restore the fetch here.
+            addMessage('The AI assistant is not available in this build.', 'bot');
         }
 
         sendBtn.addEventListener('click', sendMessage);
@@ -2172,6 +2098,25 @@
             // Re-highlight new code blocks
             div.querySelectorAll('pre code').forEach(hljs.highlightElement);
         }
+    </script>
+    <script>
+        // P2: the sidebar links target routes that aren't implemented in this
+        // build. Rather than silent dead clicks, mark them "coming soon" and
+        // give the user feedback. Add a route here once it actually exists.
+        document.addEventListener('DOMContentLoaded', () => {
+            const IMPLEMENTED = new Set(['/map-w']);
+            document.querySelectorAll('.sidebar .menu-item').forEach(item => {
+                const href = item.getAttribute('data-href') || '';
+                if (IMPLEMENTED.has(href)) return;
+                item.classList.add('coming-soon');
+                item.classList.remove('active');
+                item.setAttribute('title', 'Coming soon');
+                item.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    if (typeof showToast === 'function') showToast('Module coming soon');
+                });
+            });
+        });
     </script>
 </body>
 

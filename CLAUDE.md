@@ -17,17 +17,20 @@ Prototype quality, **not production‑ready** — has live security/privacy issu
 - `app-env.py` — thin shim (`from app import app`); kept for backward compat.
   Don't put logic here.
 - `templates/wifi-search.html` — the entire frontend (inline CSS + JS).
-- `.env` — gitignored (see `.env.example`); auto‑loaded by `app.py`. Deps in
-  `WireTapper.txt` (Flask, requests, python-dotenv, Flask-Limiter).
+- `.env` — gitignored (see `.env.example`); auto‑loaded by `app.py`. Deps
+  pinned in `requirements.txt`; tests in `tests/` (`pytest`), dev deps in
+  `requirements-dev.txt`.
 
 ## Non‑obvious facts that will save you a wrong turn
 1. **`app.py` is canonical; `app-env.py` just imports it.** Consolidated in
    v0.3.0 — do not re‑fork logic into the shim.
 2. **`.env` IS loaded now** (python-dotenv). dotenv + Flask-Limiter are imported
    defensively, so the app still runs if they're missing (limiter → no‑op).
-3. **~12 frontend routes don't exist** (`/crmx`, `/api/username`, `/log-activity`,
-   `/chatgpt`, `/logout`, …). They 404. Only `/map-w`, `/nearby`, `/searchzz`,
-   `/api/geo/towers`, `/api/geo/celltower` are implemented.
+3. **~12 frontend routes don't exist** (`/crmx`, `/logout`, `/chatgpt`, …). Only
+   `/map-w`, `/nearby`, `/searchzz`, `/api/geo/towers`, `/api/geo/celltower` are
+   implemented. As of v0.4.0 the dead sidebar links are labeled "SOON" and the
+   failing on‑load calls (`/api/username`, `/log-activity`, `/chatgpt`) were
+   removed — don't re‑add calls to unimplemented endpoints.
 4. **Dummy data is opt‑in via `?demo=1`** (v0.3.0). Real empty results now return
    `{"devices": []}` — no more silent masking.
 5. **The device JSON shape is a contract** the template depends on (keys: `lat,
@@ -56,7 +59,7 @@ Prototype quality, **not production‑ready** — has live security/privacy issu
 
 ## Fast validation
 ```bash
-python -m pyflakes app-env.py app.py         # if available
-python -c "import ast,sys; [ast.parse(open(f).read()) for f in ('app.py','app-env.py')]"  # syntax
-WIGLE_API_NAME=x WIGLE_API_TOKEN=y python app-env.py   # boots on :8080; visit /map-w
+python -c "import ast; [ast.parse(open(f).read()) for f in ('app.py','app-env.py')]"  # syntax
+pytest -q                                    # 20 tests, HTTP stubbed (no keys needed)
+python app.py                                # boots on 127.0.0.1:8080; visit /map-w
 ```
