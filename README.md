@@ -89,38 +89,42 @@ Follow these steps to get WireTapper up and running:
 2. **Install dependencies:**
    It is recommended to use a virtual environment.
    ```bash
-   pip install -r WireTapper.txt
+   pip install -r requirements.txt
    ```
 
 3. **Configure API Keys and Run:**
 
    Choose one of the following methods to configure your API keys and run the application:
 
-   ### Method 1: Modify `app.py` (Direct Configuration)
-   Open `app.py` and manually enter your API keys by replacing the empty strings:
-   ```python
-   WIGLE_API_NAME = "your_wigle_api_name"
-   WIGLE_API_TOKEN = "your_wigle_api_token"
-   OPENCELLID_API_KEY = "your_opencellid_api_key"
-   SHODAN_API_KEY = "your_shodan_api_key"
-   ```
-   Then, start the server:
-   ```bash
-   python app.py
-   ```
-
-   ### Method 2: Use `app-env.py` (Environment Variables)
-   This is the recommended approach for better security. You can export your keys in the terminal:
+   Keys come from **environment variables** (never hardcode secrets in source —
+   see [`docs/SECURITY_AUDIT.md`](docs/SECURITY_AUDIT.md)). Copy `.env.example`
+   to `.env` and fill it in — `app.py` auto-loads `.env` via `python-dotenv`.
+   Alternatively, export the variables in your shell:
    ```bash
    export WIGLE_API_NAME="your_wigle_api_name"
    export WIGLE_API_TOKEN="your_wigle_api_token"
    export OPENCELLID_API_KEY="your_opencellid_api_key"
    export SHODAN_API_KEY="your_shodan_api_key"
    ```
-   Alternatively, you can define these keys in a `.env` file. Then, start the server:
+
+   Then start the server (`app.py` is the single backend; `app-env.py` is a
+   backwards-compatible alias that imports it):
    ```bash
-   python app-env.py
+   python app.py           # dev only (localhost, debugger off)
    ```
+   For anything beyond local use, run behind a production WSGI server:
+   ```bash
+   gunicorn -w 2 -b 127.0.0.1:8080 app:app
+   ```
+
+   > **Server defaults (SEC-01):** binds `127.0.0.1:8080` with the debugger
+   > **off**. For local development only you may opt in via `FLASK_HOST`,
+   > `FLASK_PORT`, and `FLASK_DEBUG=1`. Never expose the Flask dev server
+   > publicly — put it behind gunicorn/uvicorn + a reverse proxy.
+   >
+   > **Access control (SEC-03):** set `WIRETAPPER_ACCESS_TOKEN` to require an
+   > `X-API-Key` header on the data endpoints, and tune `RATE_LIMIT_DEFAULT`.
+   > All outbound calls have timeouts. See `.env.example` for every knob.
 
    The application will be available at `http://localhost:8080/map-w`.
 
