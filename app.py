@@ -36,10 +36,40 @@ except Exception:  # pragma: no cover
 
 __version__ = "0.3.0"
 
-logging.basicConfig(level=os.getenv("LOG_LEVEL", "INFO"))
+try:
+    logging.basicConfig(level=(os.getenv("LOG_LEVEL") or "INFO").strip().upper())
+except (ValueError, TypeError):
+    logging.basicConfig(level="INFO")
 log = logging.getLogger("wiretapper")
 
 app = Flask(__name__)
+
+
+def _env_float(name, default):
+    """Parse a float env var, falling back to `default` when it is unset, empty,
+    or non-numeric. A set-but-EMPTY var (common when a platform's env UI keeps a
+    blank key) must not crash import — os.getenv(name, default) returns '' in
+    that case, so float('') would raise."""
+    raw = os.getenv(name)
+    if raw is None or raw.strip() == "":
+        return float(default)
+    try:
+        return float(raw)
+    except (TypeError, ValueError):
+        log.warning("Invalid %s=%r; using default %s", name, raw, default)
+        return float(default)
+
+
+def _env_int(name, default):
+    """Integer counterpart to _env_float (same empty/invalid tolerance)."""
+    raw = os.getenv(name)
+    if raw is None or raw.strip() == "":
+        return int(default)
+    try:
+        return int(raw)
+    except (TypeError, ValueError):
+        log.warning("Invalid %s=%r; using default %s", name, raw, default)
+        return int(default)
 
 # --- Configuration (all from environment) ---
 WIGLE_API_NAME = os.getenv("WIGLE_API_NAME", "")
@@ -53,12 +83,12 @@ API_ACCESS_TOKEN = os.getenv("WIRETAPPER_ACCESS_TOKEN", "")
 
 # SEC-07: connect/read timeouts (seconds) applied to every outbound call.
 HTTP_TIMEOUT = (
-    float(os.getenv("HTTP_CONNECT_TIMEOUT", "3.05")),
-    float(os.getenv("HTTP_READ_TIMEOUT", "10")),
+    _env_float("HTTP_CONNECT_TIMEOUT", 3.05),
+    _env_float("HTTP_READ_TIMEOUT", 10),
 )
 
 # SEC-03: bound user-supplied query length before it reaches upstream APIs.
-MAX_QUERY_LEN = int(os.getenv("MAX_QUERY_LEN", "256"))
+MAX_QUERY_LEN = _env_int("MAX_QUERY_LEN", 256)
 
 
 def _build_session():
@@ -724,5 +754,5 @@ if __name__ == "__main__":
     # In production serve behind a real WSGI server (gunicorn/uvicorn).
     debug = os.getenv("FLASK_DEBUG", "0").lower() in ("1", "true", "yes")
     host = os.getenv("FLASK_HOST", "127.0.0.1")
-    port = int(os.getenv("FLASK_PORT", "8080"))
+    port = _env_int("FLASK_PORT", 8080)
     app.run(host=host, port=port, debug=debug)

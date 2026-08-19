@@ -4,6 +4,18 @@ All notable changes to WireTapper are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); this
 project uses [Semantic Versioning](https://semver.org/).
 
+## [0.7.3] — 2026-08-19
+
+### Fixed
+- **Crash on set-but-empty numeric env vars** (`FUNCTION_INVOCATION_FAILED` /
+  500 on Vercel). `float(os.getenv("HTTP_CONNECT_TIMEOUT", "3.05"))` returns `""`
+  when the variable is set but blank (common when every key from `.env.example`
+  is pasted into a platform's env UI), and `float("")` raised `ValueError` at
+  import — taking down every request. Added `_env_float` / `_env_int` helpers
+  that fall back to the default on empty/blank/invalid input; applied to
+  `HTTP_CONNECT_TIMEOUT`, `HTTP_READ_TIMEOUT`, `MAX_QUERY_LEN`, `FLASK_PORT`, and
+  made `LOG_LEVEL` parsing tolerant too. Added regression tests (now 28).
+
 ## [0.7.2] — 2026-08-19
 
 ### Fixed
