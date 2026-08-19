@@ -1,7 +1,7 @@
 # Tooling config for WireTapper (P3). Ruff handles both linting and formatting.
 [tool.ruff]
 line-length = 120
-target-version = "py39"
+target-version = "py310"  # min supported: pinned deps (Flask-Limiter 4.x) need >=3.10
 extend-exclude = ["app-env.py"]  # thin shim; re-exports app.app
 
 [tool.ruff.lint]

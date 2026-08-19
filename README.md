@@ -145,14 +145,16 @@ Follow these steps to get WireTapper up and running:
 
 ## 🧪 Development
 
+Requires **Python 3.10+** (Flask-Limiter 4.x dropped 3.9).
+
 ```bash
 pip install -r requirements.txt -r requirements-dev.txt
 ruff check .        # lint (config in pyproject.toml)
 pytest -q           # test suite (outbound HTTP stubbed — no keys needed)
 ```
 
-CI (GitHub Actions, `.github/workflows/ci.yml`) runs ruff + pytest on Python 3.9
-and 3.12 for every push to `main` and every pull request. See
+CI (GitHub Actions, `.github/workflows/ci.yml`) runs ruff + pytest on Python
+3.10 and 3.12 for every push to `main` and every pull request. See
 [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the system map and
 [`TODO.md`](TODO.md) for the remaining roadmap.
 

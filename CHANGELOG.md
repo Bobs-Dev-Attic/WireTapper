@@ -4,6 +4,14 @@ All notable changes to WireTapper are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); this
 project uses [Semantic Versioning](https://semver.org/).
 
+## [0.5.1] — 2026-08-19
+
+### Fixed
+- **CI:** the Python **3.9** matrix leg failed at dependency install (Flask-Limiter
+  4.x requires Python ≥3.10). Set the project minimum to **3.10** — CI matrix is
+  now `3.10` + `3.12`, ruff `target-version = py310`, documented in README /
+  requirements. (3.12 was already green.)
+
 ## [0.5.0] — 2026-08-19
 
 Quality, compliance & accessibility pass (**P3** from [`TODO.md`](TODO.md)).
