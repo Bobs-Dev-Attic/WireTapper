@@ -4,6 +4,52 @@ All notable changes to WireTapper are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); this
 project uses [Semantic Versioning](https://semver.org/).
 
+## [0.3.0] — 2026-08-19
+
+Robustness + hardening pass (**P1** from [`TODO.md`](TODO.md)). Consolidates the
+two backends and adds the network/auth safety that was missing.
+
+### Changed
+- **Consolidated backends.** `app.py` is now the single canonical module (env
+  config + wpa-sec enrichment + all fixes). `app-env.py` is a thin shim that
+  does `from app import app`, so `python app-env.py` and the WSGI target
+  `app-env:app` still work. Ends the app.py/app-env.py feature drift.
+- **Demo data is opt-in.** Fabricated "dummy" devices now require `?demo=1`;
+  previously they were injected on any empty result, masking missing keys and
+  upstream failures. Real empty results now return `{"devices": []}` honestly.
+
+### Security / robustness
+- **P1/SEC (dotenv)** — `.env` files are now actually loaded (`python-dotenv` +
+  `load_dotenv()`); the documented Method-2 workflow previously did nothing.
+- **SEC-07** — All outbound calls go through one shared `requests.Session` with
+  connect/read **timeouts** `(3.05, 10)`, connection pooling, and bounded
+  retry/back-off. Removes the hung-worker DoS surface.
+- **SEC-03** — Added per-IP **rate limiting** (Flask-Limiter, 120/hour on data
+  endpoints), an optional **access-token gate** (`WIRETAPPER_ACCESS_TOKEN` via
+  `X-API-Key`/`access_token`, open by default for localhost), and **bounded the
+  user query length** (`MAX_QUERY_LEN`, default 256) before it reaches Shodan/
+  Wigle. Shodan `network` search is also capped to 10 results.
+- **SEC-05** — OpenCellID `getInArea` now uses **HTTPS** (was cleartext `http://`
+  with the key in the query string).
+- **SEC-06** — Endpoints no longer reflect upstream response bodies/tracebacks to
+  the client; details are logged server-side and generic errors returned.
+
+### Fixed
+- **Falsy-coordinate bug** — `lat`/`lon` of `0.0` (a valid location) are no longer
+  rejected as "missing"; checks use `is None`.
+- `wpasec_kquery` uses `.get()` and skips malformed devices instead of raising.
+
+### Added
+- `python-dotenv` and `Flask-Limiter` to the requirements (both imported
+  defensively — the app degrades gracefully if either is absent).
+- Expanded `.env.example` documenting every configuration knob.
+
+### Notes / not yet addressed (see TODO.md)
+- The static frontend does not yet send `X-API-Key`, so enabling the token gate
+  currently requires a caller that adds the header (follow-up: real auth + login).
+- Dead frontend routes, security headers/CSP (SEC-08), dependency pinning + SRI
+  (SEC-09), and tests/CI remain open (**P2/P3**).
+
 ## [0.2.0] — 2026-08-19
 
 Security hardening pass (**P0** from [`TODO.md`](TODO.md)). No feature changes;

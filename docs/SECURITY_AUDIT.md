@@ -15,7 +15,12 @@ not formal scoring. Cross‑reference IDs are used in [`/TODO.md`](../TODO.md).
 ## Status (see [`CHANGELOG.md`](../CHANGELOG.md))
 - ✅ **Fixed in v0.2.0:** SEC‑01, SEC‑02, SEC‑04 (code portion; **key rotation
   still owed by the maintainer**).
-- ⬜ **Open:** SEC‑03, SEC‑05, SEC‑06, SEC‑07, SEC‑08, SEC‑09, SEC‑10.
+- ✅ **Fixed in v0.3.0:** SEC‑03 (rate limit + optional token gate + query
+  bounding), SEC‑05 (HTTPS), SEC‑06 (no error reflection), SEC‑07 (timeouts +
+  shared session).
+- ⬜ **Open:** SEC‑08 (headers/CSP), SEC‑09 (dep pinning + SRI), SEC‑10 (CSRF/
+  sanitize `/chatgpt` before it ships). SEC‑03 follow‑up: frontend does not send
+  `X-API-Key` yet, so the gate needs a real auth story to be user‑facing.
 
 ---
 

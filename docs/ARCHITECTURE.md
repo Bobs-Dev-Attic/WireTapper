@@ -3,23 +3,33 @@
 Purpose: give an AI agent or new contributor the whole system in one screen so
 they don't re‑read every file. Keep this in sync when routes/flows change.
 
+> Updated for **v0.3.0** (P1 consolidation). Backends are now unified.
+
 ## Stack
-- **Backend:** Python 3 + Flask (single module). Two near‑duplicate entrypoints:
-  - `app.py` — API keys **hardcoded** in source (placeholders). No wpa‑sec.
-  - `app-env.py` — keys from `os.getenv`; **adds `wpasec_kquery`**. Preferred base.
+- **Backend:** Python 3 + Flask, **single canonical module `app.py`**.
+  `app-env.py` is a thin shim (`from app import app`) kept for backward compat;
+  `app.py` includes env config + `wpasec_kquery`. WSGI targets: `app:app` (or
+  `app-env:app`).
 - **Frontend:** one server‑rendered Jinja template `templates/wifi-search.html`
   (Leaflet + MarkerCluster + Font Awesome + highlight.js via CDN). All app logic
   is inline `<script>`.
-- **Config:** `.env` (tracked, placeholders). ⚠️ **No `load_dotenv()` anywhere** —
-  `.env` file is NOT actually read; only real shell exports reach `os.getenv`.
-- **Deps:** `WireTapper.txt` = `Flask`, `requests` (unpinned).
+- **Config:** env vars, auto‑loaded from `.env` via `python-dotenv` (`.env` is
+  gitignored; see `.env.example`). Keys: `WIGLE_API_NAME/TOKEN`,
+  `OPENCELLID_API_KEY`, `SHODAN_API_KEY`. Server/security knobs: `FLASK_HOST/
+  PORT/DEBUG`, `WIRETAPPER_ACCESS_TOKEN`, `RATE_LIMIT_DEFAULT`,
+  `HTTP_CONNECT_TIMEOUT`, `HTTP_READ_TIMEOUT`, `MAX_QUERY_LEN`.
+- **Deps:** `WireTapper.txt` = `Flask`, `requests`, `python-dotenv`,
+  `Flask-Limiter` (still unpinned — P2). dotenv/limiter imported defensively.
+- **Cross‑cutting:** all outbound calls use one shared `requests.Session`
+  (`HTTP`) with timeouts + retry/pooling. Data endpoints are rate‑limited and
+  behind an optional `X-API-Key` gate. Demo data is opt‑in via `?demo=1`.
 
 ## External services
 | Service | Used for | Endpoint(s) | Auth |
 |---|---|---|---|
 | Wigle | Wi‑Fi + BT networks by bbox/ssid/bssid | `api.wigle.net/api/v2/{network,bluetooth}/search` | HTTP Basic (`WIGLE_API_NAME`/`TOKEN`) |
 | UnwiredLabs | cell geolocation | `us1.unwiredlabs.com/v2/process.php` | token in JSON (`OPENCELLID_API_KEY`) |
-| OpenCellID | towers in area | `opencellid.org/cell/getInArea` (**http**), `www.opencellid.org/ajax/getCells.php` | key in query / none |
+| OpenCellID | towers in area | `opencellid.org/cell/getInArea` (**https** since v0.3.0), `www.opencellid.org/ajax/getCells.php` | key in query / none |
 | Shodan | internet‑exposed hosts by geo/query | `api.shodan.io/shodan/host/search` | key in query (**premium** required) |
 | wpa‑sec | leaked WPA creds (k‑anonymity) | `wpa-sec.stanev.org/bmacssid` | none (prefix query) |
 
@@ -46,10 +56,10 @@ Browser click on map
         to wpa-sec/bmacssid, match returned suffixes → device.leaked=True
     → UnwiredLabs process.php (cells)             → devices[]
     → Shodan host/search geo:lat,lon,1 (if key)   → devices[]
-  → if devices empty: inject DUMMY_DATA           ⚠️ masks real failures
+  → if devices empty AND ?demo=1: inject DUMMY_DATA (opt-in since v0.3.0)
   → JSON {devices:[...]}
 Browser updateMap(): filter by checkboxes → Leaflet markers + sidebar cards
-  ⚠️ ssid/vendor/bssid injected via innerHTML/bindPopup UNESCAPED (XSS)
+  (ssid/vendor/bssid escaped via escapeHtml() since v0.2.0)
 ```
 
 ## Device object shape (backend → frontend contract)
@@ -65,15 +75,16 @@ Browser updateMap(): filter by checkboxes → Leaflet markers + sidebar cards
 `type` is derived by `classify_device(name, original_type)` via **substring**
 matching on the SSID/banner (naive; false‑positive prone).
 
-## Known‑bug hot spots (line refs, `app-env.py`)
-- L129 `if not lat or not lon` — rejects valid 0.0 coordinates.
-- L102‑105 `requests.post(... jsonify(list(clids)).get_data())` — works only in
-  request context; no timeout.
-- L226+ Shodan `query` from user is unbounded — cost/abuse.
-- L288 OpenCellID over **http** with key in query.
-- Template L1693/L1762/L2149 — `innerHTML` XSS sinks.
+## Resolved hot spots (history — do not reintroduce)
+- Falsy‑coordinate bug (`not lat`) → fixed with `is None` (v0.3.0).
+- `wpasec_kquery` KeyErrors + no timeout → `.get()` + shared session (v0.3.0).
+- Unbounded Shodan `query` → `MAX_QUERY_LEN` + result cap (v0.3.0).
+- OpenCellID over http → HTTPS (v0.3.0).
+- Template `innerHTML` XSS sinks → `escapeHtml()` (v0.2.0); the `/chatgpt` sink
+  is still flagged for sanitization before that endpoint ships (SEC‑10).
 
 ## If you change things
-- Prefer editing **one** consolidated backend; delete or thin the duplicate.
+- Edit the single backend `app.py`; `app-env.py` is just a shim — don't fork logic.
 - Keep the device object shape stable — the template depends on these exact keys.
-- Update this file + `/TODO.md` when routes or the contract change.
+- Route outbound calls through the shared `HTTP` session (keeps timeouts/retries).
+- Update this file + `/TODO.md` + `CHANGELOG.md` when routes/contract/version change.

@@ -11,25 +11,30 @@ A Flask OSINT web app: a Leaflet map UI that queries Wigle, OpenCellID/
 UnwiredLabs, Shodan, and wpa‑sec, then plots "nearby" wireless devices.
 Prototype quality, **not production‑ready** — has live security/privacy issues.
 
-## Repo shape (small — ~4 code files)
-- `app-env.py` — **preferred backend**; keys via `os.getenv`; has `wpasec_kquery`.
-- `app.py` — legacy duplicate with **hardcoded key placeholders**; no wpa‑sec.
+## Repo shape (small — ~3 code files) — current as of v0.3.0
+- `app.py` — **the single canonical backend**; env config + `wpasec_kquery` +
+  shared `HTTP` session + rate limiting + access gate. Edit here.
+- `app-env.py` — thin shim (`from app import app`); kept for backward compat.
+  Don't put logic here.
 - `templates/wifi-search.html` — the entire frontend (inline CSS + JS).
-- `.env` — tracked, placeholders only. Requirements are in `WireTapper.txt`.
+- `.env` — gitignored (see `.env.example`); auto‑loaded by `app.py`. Deps in
+  `WireTapper.txt` (Flask, requests, python-dotenv, Flask-Limiter).
 
 ## Non‑obvious facts that will save you a wrong turn
-1. **`.env` is never loaded** — no `load_dotenv()` / `python-dotenv` anywhere.
-   Only real shell exports reach `os.getenv`. Don't assume the file works.
-2. **`app.py` and `app-env.py` are ~95% duplicated and have drifted.** Fix bugs
-   in `app-env.py`; ideally consolidate rather than edit both.
+1. **`app.py` is canonical; `app-env.py` just imports it.** Consolidated in
+   v0.3.0 — do not re‑fork logic into the shim.
+2. **`.env` IS loaded now** (python-dotenv). dotenv + Flask-Limiter are imported
+   defensively, so the app still runs if they're missing (limiter → no‑op).
 3. **~12 frontend routes don't exist** (`/crmx`, `/api/username`, `/log-activity`,
    `/chatgpt`, `/logout`, …). They 404. Only `/map-w`, `/nearby`, `/searchzz`,
    `/api/geo/towers`, `/api/geo/celltower` are implemented.
-4. **Dummy data fallback** fires whenever a provider returns nothing (e.g. missing
-   keys) — so "it works" in the demo can mean "all upstreams failed."
+4. **Dummy data is opt‑in via `?demo=1`** (v0.3.0). Real empty results now return
+   `{"devices": []}` — no more silent masking.
 5. **The device JSON shape is a contract** the template depends on (keys: `lat,
    lon, ssid, bssid, cell_id, ip, vendor, signal, accuracy, timestamp, type,
    leaked`). Don't rename keys without updating the template.
+6. **Data endpoints are rate‑limited + optionally token‑gated.** Route outbound
+   calls through the shared `HTTP` session so they inherit timeouts/retries.
 
 ## Landmines — do not reintroduce, fix if you touch nearby code
 - 🔴 `app.run(..., debug=True)` on `0.0.0.0` → RCE. Keep `debug=False`.

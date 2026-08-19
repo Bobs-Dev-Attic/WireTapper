@@ -1,2 +1,5 @@
 Flask
 requests
+# P1 additions:
+python-dotenv     # load API keys from a .env file (app.py calls load_dotenv())
+Flask-Limiter     # per-IP rate limiting on data endpoints (SEC-03)

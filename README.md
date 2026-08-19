@@ -96,9 +96,10 @@ Follow these steps to get WireTapper up and running:
 
    Choose one of the following methods to configure your API keys and run the application:
 
-   Both entrypoints read keys from **environment variables** (never hardcode
-   secrets in source — see [`docs/SECURITY_AUDIT.md`](docs/SECURITY_AUDIT.md)).
-   Copy `.env.example` for reference, then export your keys in the terminal:
+   Keys come from **environment variables** (never hardcode secrets in source —
+   see [`docs/SECURITY_AUDIT.md`](docs/SECURITY_AUDIT.md)). Copy `.env.example`
+   to `.env` and fill it in — `app.py` auto-loads `.env` via `python-dotenv`.
+   Alternatively, export the variables in your shell:
    ```bash
    export WIGLE_API_NAME="your_wigle_api_name"
    export WIGLE_API_TOKEN="your_wigle_api_token"
@@ -106,23 +107,20 @@ Follow these steps to get WireTapper up and running:
    export SHODAN_API_KEY="your_shodan_api_key"
    ```
 
-   ### `app-env.py` (recommended)
-   Includes wpa-sec leaked-credential enrichment. Start the server:
+   Then start the server (`app.py` is the single backend; `app-env.py` is a
+   backwards-compatible alias that imports it):
    ```bash
-   python app-env.py
+   python app.py           # or: python app-env.py
    ```
 
-   ### `app.py` (legacy, no wpa-sec)
-   A near-duplicate kept for now (consolidation is planned — see `TODO.md`):
-   ```bash
-   python app.py
-   ```
-
-   > **Note:** a `.env` *file* is not auto-loaded yet (no `python-dotenv`); until
-   > that lands you must `export` the variables in your shell. By default the
-   > server binds `127.0.0.1:8080` with the debugger **off**. For local
-   > development only you may opt in via `FLASK_HOST`, `FLASK_PORT`, and
-   > `FLASK_DEBUG=1`. Never expose the Flask dev server publicly.
+   > **Server defaults (SEC-01):** binds `127.0.0.1:8080` with the debugger
+   > **off**. For local development only you may opt in via `FLASK_HOST`,
+   > `FLASK_PORT`, and `FLASK_DEBUG=1`. Never expose the Flask dev server
+   > publicly — put it behind gunicorn/uvicorn + a reverse proxy.
+   >
+   > **Access control (SEC-03):** set `WIRETAPPER_ACCESS_TOKEN` to require an
+   > `X-API-Key` header on the data endpoints, and tune `RATE_LIMIT_DEFAULT`.
+   > All outbound calls have timeouts. See `.env.example` for every knob.
 
    The application will be available at `http://localhost:8080/map-w`.
 

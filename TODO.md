@@ -30,32 +30,38 @@ Legend: 🔴 critical · 🟠 high · 🟡 medium · ⚪ low · effort ⏱ S/M/L
   ↪ Follow‑up (P3): README says "CC‑BY‑NC‑4.0" but the file is a custom NCOSL —
   reconcile the license text vs. the stated license.
 
-## P1 — Correctness & core hardening
+## P1 — Correctness & core hardening ✅ DONE in v0.3.0
 
-- [ ] 🟠 **Make secret loading actually work.** ⏱S
-  Add `python-dotenv` to requirements and `load_dotenv()` in `app-env.py`, OR fix
-  the README (Method 2 currently silently fails — no `load_dotenv` exists).
-- [ ] 🟠 **SEC‑07 Add timeouts + shared session.** ⏱S
-  Module‑level `requests.Session`, `timeout=(3.05, 10)` on every call, back‑off.
-- [ ] 🟠 **SEC‑03 Auth + rate limit search endpoints.** ⏱M
-  Flask‑Limiter per‑IP; require auth for `/searchzz`/`/nearby`; validate/bound the
-  Shodan `query` so anonymous users can't spend the premium key.
-- [ ] 🟠 **Fix falsy‑coordinate bug.** ⏱S
-  Replace `if not lat or not lon` with `if lat is None or lon is None` everywhere.
-- [ ] 🟠 **Consolidate `app.py` + `app-env.py` into one module.** ⏱M
-  Config via env; delete the duplicate to stop feature drift (wpa‑sec lives in
-  only one today).
-- [ ] 🟠 **SEC‑05 HTTPS for OpenCellID; keys out of query strings.** ⏱S
+- [x] 🟠 **Make secret loading actually work.** ⏱S
+  Done (v0.3.0): `python-dotenv` added; `app.py` calls `load_dotenv()`.
+- [x] 🟠 **SEC‑07 Add timeouts + shared session.** ⏱S
+  Done (v0.3.0): one shared `requests.Session` with `timeout=(3.05, 10)`,
+  pooling, and bounded retry/back‑off; used by every outbound call.
+- [x] 🟠 **SEC‑03 Auth + rate limit search endpoints.** ⏱M
+  Done (v0.3.0): Flask‑Limiter (120/hour on data endpoints), optional
+  `WIRETAPPER_ACCESS_TOKEN` gate (`X-API-Key`), and `MAX_QUERY_LEN` bounding.
+  ↪ Follow‑up: wire `X-API-Key` into the frontend / add real login‑based auth.
+- [x] 🟠 **Fix falsy‑coordinate bug.** ⏱S
+  Done (v0.3.0): all checks use `lat is None or lon is None`.
+- [x] 🟠 **Consolidate `app.py` + `app-env.py` into one module.** ⏱M
+  Done (v0.3.0): `app.py` is canonical; `app-env.py` is a shim importing it.
+- [x] 🟠 **SEC‑05 HTTPS for OpenCellID; keys out of query strings.** ⏱S
+  Done (v0.3.0): `getInArea` now HTTPS. (Provider APIs still require the key as a
+  query param by design; HTTPS protects it in transit.)
+- [x] 🟡 **(pulled forward) SEC‑06 Stop reflecting upstream error text.** ⏱S
+  Done (v0.3.0): upstream bodies/tracebacks no longer returned to clients.
+- [x] 🟡 **(pulled forward) Demo data opt‑in (`?demo=1`).** ⏱S Done (v0.3.0).
+- [x] 🟡 **(pulled forward) Harden `wpasec_kquery`.** ⏱S Done (v0.3.0).
 
 ## P2 — Robustness, UX honesty, best practices
 
-- [ ] 🟡 **Make dummy data opt‑in (`?demo=1`).** ⏱S Stop masking real failures.
-- [ ] 🟡 **SEC‑06 Stop reflecting upstream error text / tracebacks.** ⏱S
+- [x] 🟡 **Make dummy data opt‑in (`?demo=1`).** Done in v0.3.0.
+- [x] 🟡 **SEC‑06 Stop reflecting upstream error text / tracebacks.** Done in v0.3.0.
+- [x] 🟡 **Harden `wpasec_kquery`** — `.get()` + skip malformed. Done in v0.3.0.
 - [ ] 🟡 **SEC‑08 Add security headers + CSP** (Flask‑Talisman). ⏱M
 - [ ] 🟡 **SEC‑09 Pin Python deps (hashes) + add SRI to CDN assets** (or self‑host). ⏱M
 - [ ] 🟡 **Rename `WireTapper.txt` → `requirements.txt`; pin versions; add WSGI server.** ⏱S
-- [ ] 🟡 **Harden `wpasec_kquery`** — use `.get()` not `d['…']`; skip malformed
-  devices without aborting the loop. ⏱S
+  (Deps now include `python-dotenv` + `Flask-Limiter`; still unpinned/unrenamed.)
 - [ ] 🟡 **Improve `classify_device`** — token/word‑boundary match, ordered rules,
   reduce false positives (`OSCAR`→car, `FLAGSHIP`→LG). ⏱M
 - [ ] 🟡 **Resolve dead frontend routes** — implement, hide, or label the ~12

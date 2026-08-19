@@ -12,28 +12,32 @@ queue in [`TODO.md`](TODO.md); system map in
 [`docs/PROJECT_REVIEW.md`](docs/PROJECT_REVIEW.md) and
 [`docs/SECURITY_AUDIT.md`](docs/SECURITY_AUDIT.md).
 
-## Files
-- `app-env.py` — preferred backend (env keys; has `wpasec_kquery`).
-- `app.py` — legacy duplicate (hardcoded placeholder keys; no wpa‑sec).
+## Files (as of v0.3.0)
+- `app.py` — **the single canonical backend** (env keys, `wpasec_kquery`, shared
+  `HTTP` session, rate limiting, access gate). Edit here.
+- `app-env.py` — thin shim: `from app import app`. No logic here.
 - `templates/wifi-search.html` — entire frontend (inline CSS/JS).
-- `WireTapper.txt` — deps (unpinned: Flask, requests). `.env` — tracked placeholders.
+- `WireTapper.txt` — deps (Flask, requests, python-dotenv, Flask-Limiter; still
+  unpinned). `.env` — gitignored; auto-loaded; see `.env.example`.
 
 ## Gotchas (save yourself a wrong turn)
-1. `.env` is **not** loaded — no `load_dotenv()` exists; only shell exports work.
-2. `app.py` and `app-env.py` have **drifted**; prefer editing/consolidating into
-   `app-env.py`.
+1. `app.py` is canonical; `app-env.py` only imports it (consolidated v0.3.0).
+2. `.env` **is** loaded now (python-dotenv); dotenv + Flask-Limiter are optional
+   imports (app degrades gracefully if absent).
 3. ~12 frontend routes are **unimplemented** (404): `/crmx`, `/api/username`,
    `/log-activity`, `/chatgpt`, `/logout`, … Only `/map-w`, `/nearby`,
    `/searchzz`, `/api/geo/towers`, `/api/geo/celltower` exist.
-4. Empty upstream results silently fall back to **fabricated dummy data**.
+4. Dummy data is **opt-in via `?demo=1`**; real empty results return `[]`.
 5. The device JSON keys are a **contract** the template relies on.
+6. Route outbound HTTP through the shared `HTTP` session (timeouts/retries).
 
-## Must‑not‑break (fix if you touch nearby code)
-- Keep `debug=False`; never bind `0.0.0.0` publicly (Werkzeug RCE).
-- Escape `ssid/vendor/bssid/ip/info` before DOM insertion (current XSS).
-- Add `timeout=` to every `requests` call.
-- Use `lat is None` checks, not `not lat` (0.0 is valid).
-- No secrets in code/commits/PRs/comments.
+## Must‑not‑break invariants (all currently satisfied — keep them)
+- Keep `debug=False` default; never bind `0.0.0.0` publicly (Werkzeug RCE).
+- Keep escaping `ssid/vendor/bssid/ip` before DOM insertion (`escapeHtml`).
+- Keep `timeout=`/shared `HTTP` session on every outbound call.
+- Keep `lat is None`/`lon is None` checks (0.0 is a valid coordinate).
+- No secrets in code/commits/PRs/comments. `/chatgpt` reply must be sanitized
+  before that endpoint ships (SEC‑10).
 
 ## Conventions
 - Minimal, style‑matching diffs. Update `docs/ARCHITECTURE.md` + `TODO.md` when
