@@ -4,6 +4,15 @@ All notable changes to WireTapper are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); this
 project uses [Semantic Versioning](https://semver.org/).
 
+## [0.7.2] — 2026-08-19
+
+### Fixed
+- **Vercel build failure.** Vercel's uv-based Python builder detected the repo's
+  `pyproject.toml` (ruff/pytest config, no `[project]` table) and failed with
+  `uv lock … No 'project' table found`, ignoring `requirements.txt`. Added
+  `pyproject.toml` to `.vercelignore` so the builder installs from
+  `requirements.txt` as intended. Documented in `docs/DEPLOY.md`.
+
 ## [0.7.1] — 2026-08-19
 
 ### Docs

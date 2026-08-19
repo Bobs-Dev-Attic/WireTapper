@@ -6,6 +6,10 @@ scripts/
 docs/
 *.md
 !requirements.txt
+# Exclude pyproject.toml: it only holds ruff/pytest config (no [project] table),
+# and Vercel's uv-based Python builder tries to `uv lock` against it and fails.
+# Without it, the builder installs from requirements.txt as intended.
+pyproject.toml
 .env
 .env.*
 __pycache__/

@@ -20,8 +20,13 @@ vercel          # preview deploy
 vercel --prod   # production
 ```
 
-Vercel auto-installs `requirements.txt` and uses Python 3.12 (satisfies our
-`>=3.10` floor).
+Vercel installs `requirements.txt` and uses Python 3.12 (satisfies our `>=3.10`
+floor).
+
+> **Note:** `.vercelignore` excludes `pyproject.toml` on purpose. It holds only
+> ruff/pytest config (no `[project]` table); if Vercel's uv-based builder sees
+> it, `uv lock` fails with *"No `project` table found"*. Excluding it makes the
+> builder use `requirements.txt`.
 
 ## 2. Environment variables (Project → Settings → Environment Variables)
 
