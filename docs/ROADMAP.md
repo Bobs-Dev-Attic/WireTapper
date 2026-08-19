@@ -30,10 +30,11 @@ banner text. It is prototype-grade but now hardened (see `CHANGELOG.md`).
 
 ## Medium-term (architecture options)
 
-- **Parallelize upstream calls.** `/nearby` currently calls Wigle → wpa-sec →
-  UnwiredLabs → Shodan sequentially. Fanning them out concurrently
-  (`concurrent.futures` with the current `requests.Session`, or migrating the
-  hot path to `httpx.AsyncClient`) would roughly halve latency.
+- ~~**Parallelize upstream calls.**~~ **Done (v0.7.0):** `/nearby` and
+  `/searchzz` fan the independent providers out concurrently via a
+  `ThreadPoolExecutor` over the shared `requests.Session`; wall-clock ≈ slowest
+  call instead of the sum. (An `httpx.AsyncClient` rewrite remains an option if
+  the app later moves to async/FastAPI.)
 - **FastAPI + async** if the app grows: native async I/O suits a service whose
   work is mostly fanning out to slow third-party APIs; Pydantic would formalize
   the device contract (currently an implicit dict shape).

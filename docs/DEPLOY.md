@@ -67,15 +67,16 @@ this header yet (tracked in `TODO.md`/`docs/ROADMAP.md`), so today the token gat
 is best paired with an external auth layer (e.g. Vercel Authentication /
 password protection) if you expose the map UI itself.
 
-## 5. Function timeout vs. upstream calls ⚠️
+## 5. Function timeout vs. upstream calls
 
-`/nearby` calls Wigle → wpa-sec → OpenCellID → Shodan **sequentially**, each with
-a read timeout + retries. Worst case can exceed **Vercel's function limit**
-(10s on Hobby, ~60s on Pro). To stay under it:
+`/nearby` and `/searchzz` now call the independent providers **concurrently**
+(v0.7.0), so wall-clock ≈ the *slowest* provider (Wigle + its wpa-sec follow-up)
+rather than the sum of all of them. That keeps most requests comfortably under
+**Vercel's function limit** (10s Hobby, ~60s Pro). Still, a single slow provider
+plus retries can add up, so:
 
-- Set `HTTP_READ_TIMEOUT` to something like `4`.
-- Consider raising the function `maxDuration` on Pro, and/or parallelizing the
-  upstream calls (see `docs/ROADMAP.md`).
+- Set `HTTP_READ_TIMEOUT` to something like `4` for extra headroom.
+- On Pro, you can also raise the function `maxDuration`.
 
 ## 6. Content-Security-Policy
 

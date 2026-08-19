@@ -7,6 +7,7 @@ Outbound HTTP is stubbed so no real network / API keys are needed.
 
 import importlib.util
 import os
+import time
 from pathlib import Path
 
 import pytest
@@ -184,6 +185,52 @@ def test_wpasec_kquery_skips_malformed_without_raising(app_module):
     out = app_module.wpasec_kquery(devices)
     assert out is devices
     assert all("hash" not in d for d in out)
+
+
+# ---- upstream calls run in parallel (not serial)
+
+class _SlowHTTP:
+    """Every call sleeps `delay`, so serial vs. parallel is measurable."""
+
+    def __init__(self, delay):
+        self.delay = delay
+
+    def get(self, url, *a, **k):
+        time.sleep(self.delay)
+        if "wigle.net" in url:
+            return _RoutedResp({"results": [{
+                "trilat": 1, "trilong": 2, "ssid": "N",
+                "netid": "AA:BB:CC:DD:EE:FF", "vendor": "V", "level": -1, "lastupdt": "t",
+            }]})
+        if "unwiredlabs.com" in url:
+            return _RoutedResp({"status": "ok", "cells": [{"lat": 1, "lon": 2, "cellid": 9}]})
+        if "shodan.io" in url:
+            return _RoutedResp({"matches": [{
+                "ip_str": "1.2.3.4", "data": "", "location": {"latitude": 1, "longitude": 2},
+            }]})
+        return _RoutedResp({})
+
+    def post(self, *a, **k):
+        time.sleep(self.delay)
+        return _RoutedResp({})
+
+
+def test_nearby_runs_providers_concurrently(app_module):
+    app_module.SHODAN_API_KEY = "x"  # enable the shodan branch
+    app_module.HTTP = _SlowHTTP(0.2)
+    c = app_module.app.test_client()
+
+    t0 = time.perf_counter()
+    devices = c.get("/nearby?lat=1&lon=2").get_json()["devices"]
+    elapsed = time.perf_counter() - t0
+
+    types = [d["type"] for d in devices]
+    # Output still complete and in fixed order (Wigle → cells → Shodan).
+    assert "router" in types and "cell_tower" in types
+    assert types.index("router") < types.index("cell_tower")
+    # Parallel wall-clock ≈ the slowest branch (Wigle get+post ≈ 0.4s), well
+    # under the ~0.8s a serial run of all four calls would take.
+    assert elapsed < 0.6, f"providers appear to run serially: {elapsed:.2f}s"
 
 
 # ---- rate limiting (SEC-03)
