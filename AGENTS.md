@@ -12,13 +12,16 @@ queue in [`TODO.md`](TODO.md); system map in
 [`docs/PROJECT_REVIEW.md`](docs/PROJECT_REVIEW.md) and
 [`docs/SECURITY_AUDIT.md`](docs/SECURITY_AUDIT.md).
 
-## Files (as of v0.3.0)
+## Files (as of v0.5.0)
 - `app.py` — **the single canonical backend** (env keys, `wpasec_kquery`, shared
-  `HTTP` session, rate limiting, access gate). Edit here.
+  `HTTP` session, rate limiting, access gate, security headers/CSP). Edit here.
 - `app-env.py` — thin shim: `from app import app`. No logic here.
-- `templates/wifi-search.html` — entire frontend (inline CSS/JS).
-- `requirements.txt` — pinned deps (+ gunicorn); `requirements-dev.txt` — pytest.
-  `tests/` — pytest suite (HTTP stubbed). `.env` — gitignored; auto-loaded.
+- `templates/wifi-search.html` — entire frontend (inline CSS/JS) + lawful-use
+  interstitial.
+- `requirements.txt` — pinned deps (+ gunicorn); `requirements-dev.txt` —
+  pytest + ruff. `tests/` — 22 pytest tests (HTTP stubbed). CI in
+  `.github/workflows/ci.yml`. `pyproject.toml` — ruff config.
+- Docs: `PRIVACY.md`, `docs/LEGAL.md`, `docs/ROADMAP.md`. `.env` gitignored/auto-loaded.
 
 ## Gotchas (save yourself a wrong turn)
 1. `app.py` is canonical; `app-env.py` only imports it (consolidated v0.3.0).

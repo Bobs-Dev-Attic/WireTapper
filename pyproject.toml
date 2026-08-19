@@ -1,0 +1,15 @@
+# Tooling config for WireTapper (P3). Ruff handles both linting and formatting.
+[tool.ruff]
+line-length = 120
+target-version = "py39"
+extend-exclude = ["app-env.py"]  # thin shim; re-exports app.app
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B"]
+# E402: app.py intentionally loads dotenv before reading os.getenv config.
+# E501: line length is not enforced (data/param dicts are intentionally long);
+#       `ruff format` is available but not gated in CI yet.
+ignore = ["E402", "E501"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

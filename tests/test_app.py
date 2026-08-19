@@ -36,6 +36,36 @@ class _FakeHTTP:
         return _FakeResp()
 
 
+class _RoutedResp:
+    def __init__(self, payload):
+        self.status_code = 200
+        self._payload = payload
+
+    def json(self):
+        return self._payload
+
+
+class _RoutedHTTP:
+    """Returns realistic per-provider payloads keyed by URL substring."""
+
+    def get(self, url, *a, **k):
+        if "wigle.net" in url:
+            return _RoutedResp({"results": [{
+                "trilat": 51.5, "trilong": -0.09, "ssid": "MyNet",
+                "netid": "AA:BB:CC:DD:EE:FF", "vendor": "Cisco",
+                "level": -60, "lastupdt": "2025-01-01T00:00:00Z",
+            }]})
+        if "unwiredlabs.com" in url:
+            return _RoutedResp({"status": "ok", "cells": [{
+                "lat": 51.51, "lon": -0.08, "cellid": 12345,
+                "signal": -70, "accuracy": 100, "updated": "2025-01-01",
+            }]})
+        return _RoutedResp({"matches": [], "features": []})
+
+    def post(self, *a, **k):
+        return _RoutedResp({})  # wpa-sec: no leaked suffixes
+
+
 @pytest.fixture()
 def app_module():
     os.environ.pop("WIRETAPPER_ACCESS_TOKEN", None)
@@ -116,6 +146,44 @@ def test_security_headers_present(client):
     assert r.headers.get("X-Content-Type-Options") == "nosniff"
     assert r.headers.get("X-Frame-Options") == "DENY"
     assert "Content-Security-Policy" in r.headers
+
+
+# ---- provider -> device mapping contract
+
+def test_nearby_maps_provider_payloads(app_module):
+    app_module.HTTP = _RoutedHTTP()
+    c = app_module.app.test_client()
+    devices = c.get("/nearby?lat=51.5&lon=-0.09").get_json()["devices"]
+
+    routers = [d for d in devices if d["type"] == "router"]
+    towers = [d for d in devices if d["type"] == "cell_tower"]
+    assert len(routers) == 1
+    assert len(towers) == 1
+
+    r = routers[0]
+    # Wigle fields mapped onto the device contract
+    assert r["lat"] == 51.5 and r["lon"] == -0.09
+    assert r["ssid"] == "MyNet"
+    assert r["bssid"] == "AA:BB:CC:DD:EE:FF"
+    assert r["vendor"] == "Cisco"
+    assert r["signal"] == -60
+
+    t = towers[0]
+    assert t["cell_id"] == "12345"  # coerced to str
+    assert t["accuracy"] == 100
+
+
+def test_wpasec_kquery_skips_malformed_without_raising(app_module):
+    # bad bssid + missing ssid must not raise, and produce no hash
+    devices = [
+        {"type": "router", "bssid": "not-a-mac", "ssid": "X"},
+        {"type": "router", "bssid": "AABBCCDDEEFF", "ssid": None},
+        {"type": "cell_tower"},
+    ]
+    app_module.HTTP = _RoutedHTTP()
+    out = app_module.wpasec_kquery(devices)
+    assert out is devices
+    assert all("hash" not in d for d in out)
 
 
 # ---- rate limiting (SEC-03)

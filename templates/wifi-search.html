@@ -4,21 +4,14 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Surveillance Dashboard</title>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <title>HayOS - H9 Dashboard</title>
+    <title>WireTapper — Wireless OSINT Dashboard</title>
     <link rel="icon" href="https://haybnz.web.app/logo.png" type="image/x-icon">
     <link href="https://fonts.googleapis.com/css2?family=Orbitron&family=Roboto+Mono&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-    <title>WiFi Search - HayOS</title>
-    <link rel="icon" href="https://haybnz.web.app/logo.png" type="image/x-icon">
-    <!-- Leaflet CSS from CDN -->
+    <!-- CDN assets (de-duplicated P3). Leaflet JS is loaded once, near </body>,
+         before the map script. Run scripts/gen_sri.sh and add integrity= here. -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <!-- Leaflet MarkerCluster CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
-    <!-- Font Awesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
     <!-- Client-side activity telemetry removed (P2): it beaconed the `username`
          cookie, click text, and dwell time to a non-existent `/log-activity`
@@ -66,6 +59,35 @@
             box-sizing: border-box;
             margin: 0;
             padding: 0;
+        }
+
+        /* P3 accessibility utilities */
+        .center {
+            text-align: center;
+        }
+
+        .visually-hidden {
+            position: absolute !important;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+
+        /* Visible keyboard-focus indicator (WCAG 2.4.7) */
+        a:focus-visible,
+        button:focus-visible,
+        input:focus-visible,
+        select:focus-visible,
+        [tabindex]:focus-visible,
+        .menu-item:focus-visible,
+        .cyber-check:focus-visible {
+            outline: 2px solid var(--primary-color);
+            outline-offset: 2px;
         }
 
         html,
@@ -1234,7 +1256,6 @@
         .card-actions {
             grid-template-columns: 1fr;
         }
-        }
 
         @media (max-width: 420px) {
             .topnav {
@@ -1412,16 +1433,10 @@
 
         <!-- Main Content -->
         <main class="main-content" id="main">
-            <center>
-                <div class="page-header">
-                    <h1>Hay0S -WiFi Surveillance Tracker</h1>
-                    <p>Coded by Hayden Ø Powered by H9</p>
-                </div>
-            </center>
-
-
-
-
+            <div class="page-header center">
+                <h1>WireTapper — WiFi Surveillance Tracker</h1>
+                <p>Coded by Hayden Ø Powered by H9</p>
+            </div>
 
             <div class="mode-toggle-container">
                 <span class="mode-label active" id="label-wifi">WIFI UPLINK</span>
@@ -1432,16 +1447,19 @@
                 <span class="mode-label" id="label-bluetooth">BT SCANNERS</span>
             </div>
 
-            <center> <select id="search-type">
+            <div class="center">
+                <label class="visually-hidden" for="search-type">Search type</label>
+                <select id="search-type" aria-label="Search type">
                     <option value="location">Location</option>
                     <option value="bssid">BSSID</option>
                     <option value="ssid">Wi-Fi SSID</option>
                     <option value="network">Network/IP</option>
                 </select>
-                <input type="text" id="search-input" placeholder="Enter search term">
-                <button onclick="performSearch()">Search</button>
+                <label class="visually-hidden" for="search-input">Search term</label>
+                <input type="text" id="search-input" placeholder="Enter search term" aria-label="Search term">
+                <button type="button" onclick="performSearch()" aria-label="Run search">Search</button>
 
-                <div class="filter-row">
+                <div class="filter-row" role="group" aria-label="Device type filters">
                     <label class="cyber-check"><input type="checkbox" checked class="filter-cb" value="router">
                         <div class="box"></div> WIFI
                     </label>
@@ -1464,7 +1482,7 @@
                         <div class="box"></div> AUDIO
                     </label>
                 </div>
-            </center>
+            </div>
 
             <div class="surveillance-grid">
                 <div class="results-sidebar" id="results-list">
@@ -1708,7 +1726,14 @@
 
                 const item = document.createElement('div');
                 item.className = 'node-item';
-                item.onclick = () => {
+                // P3 accessibility: make cards operable by keyboard, not just mouse.
+                item.setAttribute('role', 'button');
+                item.setAttribute('tabindex', '0');
+                item.setAttribute('aria-label',
+                    `${node.ssid || node.ip || 'Unknown'}, type ${node.type || 'node'}`
+                    + (node.signal ? `, signal ${node.signal} dBm` : '')
+                    + (node.leaked ? ', WPA-SEC leaked' : ''));
+                const focusMarker = () => {
                     // find marker by coordinates as we might have filtered
                     const marker = markers.getLayers().find(m => m.getLatLng().lat === node.lat && m.getLatLng().lng === node.lon);
                     if (marker) {
@@ -1716,6 +1741,10 @@
                         marker.openPopup();
                     }
                 };
+                item.onclick = focusMarker;
+                item.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); focusMarker(); }
+                });
 
                 item.innerHTML = `
                     <div class="node-header">
@@ -1726,8 +1755,9 @@
                     <div class="node-meta">
                         ${node.vendor ? `VENDOR: ${escapeHtml(node.vendor)}` : `ID: ${escapeHtml(node.bssid || node.ip || 'ANONYMOUS')}`}<br>
                         <span style="color: var(--accent-color); font-size: 9px;">LAST_SEEN: ${lastSeen}</span>
+                        ${node.signal ? `<span style="color: var(--text-dim); font-size: 9px; float: right;">SIGNAL: ${escapeHtml(node.signal)} dBm</span>` : ``}
                     </div>
-                    <div class="signal-meter">
+                    <div class="signal-meter" role="img" aria-label="${node.signal ? escapeHtml(node.signal) + ' dBm' : 'signal unknown'}">
                         <div class="signal-strength" style="width: ${percent}%; background: ${getCategoryColor(node.type)}; box-shadow: 0 0 5px ${getCategoryColor(node.type)}"></div>
                     </div>
                 `;
@@ -2072,33 +2102,10 @@
         /* optional: close with ESC */
         document.addEventListener('keydown', e => { if (e.key === 'Escape' && modal.classList.contains('open')) closeChat(); });
     </script>
-    <!-- ==== SYNTAX HIGHLIGHTING ==== -->
-    <link rel="stylesheet"
-        href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            document.querySelectorAll('pre code').forEach(hljs.highlightElement);
-        });
-    </script>
-    <!-- ==== END HIGHLIGHT ==== -->
-    <script>
-        function addMessage(text, type) {
-            const div = document.createElement('div');
-            div.className = `message ${type}`;
-            // SEC-02/SEC-10: this renders the reply as raw HTML to allow code
-            // blocks. The /chatgpt backend does not exist yet; BEFORE it ships,
-            // the reply MUST be sanitized (e.g. DOMPurify) or rendered as text,
-            // otherwise a model/backend response becomes an XSS vector.
-            div.innerHTML = text;  // supports HTML <pre><code>
-
-            messages.appendChild(div);
-            messages.scrollTop = messages.scrollHeight;
-
-            // Re-highlight new code blocks
-            div.querySelectorAll('pre code').forEach(hljs.highlightElement);
-        }
-    </script>
+    <!-- P3: removed the duplicate innerHTML `addMessage` override and the
+         highlight.js CDN includes. They only served /chatgpt code blocks (that
+         endpoint is disabled), and the override was the last raw-innerHTML sink.
+         The single textContent-based addMessage above is the one in use. -->
     <script>
         // P2: the sidebar links target routes that aren't implemented in this
         // build. Rather than silent dead clicks, mark them "coming soon" and
@@ -2117,6 +2124,53 @@
                 });
             });
         });
+    </script>
+
+    <!-- P3: lawful-use / privacy interstitial. Shown once per browser
+         (localStorage), requiring acknowledgement that WireTapper queries only
+         public OSINT databases and is for authorized, lawful use. This is a
+         notice, not a legal control — see PRIVACY.md and docs/LEGAL.md. -->
+    <div id="consent-overlay" role="dialog" aria-modal="true" aria-labelledby="consent-title" hidden
+        style="position:fixed; inset:0; z-index:3000; background:rgba(0,0,0,0.85);
+               display:flex; align-items:center; justify-content:center; padding:20px;">
+        <div style="max-width:560px; background:var(--glass-bg); border:1px solid var(--border-color);
+                    border-radius:6px; padding:24px; box-shadow:0 0 30px rgba(0,0,0,0.6);">
+            <h2 id="consent-title" style="font-size:16px; letter-spacing:2px; text-transform:uppercase;
+                margin-bottom:14px; text-shadow:var(--neon-glow);">Authorized &amp; Lawful Use Only</h2>
+            <p style="font-size:12px; line-height:1.6; color:var(--text-dim); margin-bottom:12px;">
+                WireTapper is an OSINT tool. It queries <strong>public third-party databases</strong>
+                (Wigle, OpenCellID, Shodan, wpa-sec) — it does not intercept live signals or
+                capture credentials. You are responsible for complying with all applicable laws
+                and each provider's terms of service.
+            </p>
+            <p style="font-size:12px; line-height:1.6; color:var(--text-dim); margin-bottom:18px;">
+                Do not use WireTapper for unauthorized surveillance, tracking of individuals, or
+                any unlawful purpose. By continuing you confirm your use is lawful and authorized.
+            </p>
+            <div style="display:flex; gap:10px; justify-content:flex-end; flex-wrap:wrap;">
+                <a href="https://github.com/h9zdev/WireTapper/blob/main/PRIVACY.md" target="_blank"
+                   rel="noopener" class="action-btn" style="text-decoration:none;">Privacy &amp; terms</a>
+                <button type="button" id="consent-accept" class="search-btn"
+                        style="cursor:pointer;">I understand &amp; agree</button>
+            </div>
+        </div>
+    </div>
+    <script>
+        (function () {
+            const KEY = 'wiretapper_consent_v1';
+            const overlay = document.getElementById('consent-overlay');
+            if (!overlay) return;
+            let acknowledged = false;
+            try { acknowledged = localStorage.getItem(KEY) === '1'; } catch (e) { /* storage blocked */ }
+            if (acknowledged) return;
+            overlay.hidden = false;
+            const accept = document.getElementById('consent-accept');
+            accept.addEventListener('click', () => {
+                try { localStorage.setItem(KEY, '1'); } catch (e) { /* ignore */ }
+                overlay.hidden = true;
+            });
+            accept.focus();
+        })();
     </script>
 </body>
 

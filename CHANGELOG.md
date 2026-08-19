@@ -4,6 +4,53 @@ All notable changes to WireTapper are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); this
 project uses [Semantic Versioning](https://semver.org/).
 
+## [0.5.0] — 2026-08-19
+
+Quality, compliance & accessibility pass (**P3** from [`TODO.md`](TODO.md)).
+
+### Added
+- **CI** — `.github/workflows/ci.yml` runs ruff + pytest on Python 3.9 & 3.12
+  for every push to `main` and every PR.
+- **Linting** — ruff config in `pyproject.toml`; `ruff` added to
+  `requirements-dev.txt`. Codebase is ruff-clean.
+- **Contract tests** — provider→device mapping and `wpasec_kquery` malformed
+  -input handling added to `tests/test_app.py` (now 22 tests).
+- **Privacy & legal docs** — `PRIVACY.md` (acceptable use / data handling) and
+  `docs/LEGAL.md` (third-party ToS: Wigle/OpenCellID/Shodan/wpa-sec/tiles).
+- **`docs/ROADMAP.md`** — honest positioning + the "better options" (async
+  provider fan-out, caching, FastAPI/typed contract, gunicorn+nginx, etc.).
+- **Lawful-use interstitial** — one-time (localStorage) acknowledgement that the
+  tool queries only public OSINT data and is for authorized/lawful use.
+
+### Changed
+- **README right-sized** — describes WireTapper as an OSINT *aggregator* over
+  public databases (not live RF capture); "device categories" framed as
+  heuristic labels; links privacy/legal/roadmap; adds a Development section.
+- **License wording reconciled** — README now matches the actual `LICENSE`
+  (Non-Commercial Open Source License), not the previously-claimed CC BY-NC 4.0.
+- **Branding** — page `<title>` and H1 unified to "WireTapper" (author
+  attribution retained in the subtitle).
+
+### Accessibility (WCAG-oriented)
+- Removed non-semantic `<center>` tags; added a `.center` utility.
+- Added visible keyboard focus outlines (`:focus-visible`), labels/`aria-label`s
+  on the search controls, a `role="group"` on the filter row, keyboard-operable
+  (`role="button"`, `tabindex`, Enter/Space) result cards with `aria-label`s,
+  and a **text signal value** so strength isn't encoded by color/width alone.
+
+### Removed / cleanup
+- Deleted the duplicate `innerHTML` `addMessage` override and the **highlight.js**
+  CDN includes (only served the disabled `/chatgpt` code blocks) — removing the
+  last raw-`innerHTML` sink and two external dependencies.
+- Removed duplicate `<title>` tags (3→1), duplicate Leaflet CSS/JS includes, and
+  duplicate Font Awesome / favicon links in `<head>`.
+- Fixed an **orphan `}`** in the stylesheet (172 `{` vs 173 `}`) that made the
+  CSS unbalanced and could silently drop following rules during parse.
+
+### Notes / still open
+- **Frontend auth** for the `X-API-Key` gate, **SRI attributes** (run
+  `scripts/gen_sri.sh`), and **rotating any committed keys** remain follow-ups.
+
 ## [0.4.0] — 2026-08-19
 
 Best-practices + UX-honesty pass (**P2** from [`TODO.md`](TODO.md)).

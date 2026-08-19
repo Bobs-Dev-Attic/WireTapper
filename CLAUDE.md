@@ -11,15 +11,17 @@ A Flask OSINT web app: a Leaflet map UI that queries Wigle, OpenCellID/
 UnwiredLabs, Shodan, and wpa‑sec, then plots "nearby" wireless devices.
 Prototype quality, **not production‑ready** — has live security/privacy issues.
 
-## Repo shape (small — ~3 code files) — current as of v0.3.0
+## Repo shape (small — ~3 code files) — current as of v0.5.0
 - `app.py` — **the single canonical backend**; env config + `wpasec_kquery` +
-  shared `HTTP` session + rate limiting + access gate. Edit here.
+  shared `HTTP` session + rate limiting + access gate + security headers/CSP.
 - `app-env.py` — thin shim (`from app import app`); kept for backward compat.
   Don't put logic here.
-- `templates/wifi-search.html` — the entire frontend (inline CSS + JS).
-- `.env` — gitignored (see `.env.example`); auto‑loaded by `app.py`. Deps
-  pinned in `requirements.txt`; tests in `tests/` (`pytest`), dev deps in
-  `requirements-dev.txt`.
+- `templates/wifi-search.html` — the entire frontend (inline CSS + JS); includes
+  a one‑time lawful‑use interstitial.
+- `.env` — gitignored (see `.env.example`); auto‑loaded by `app.py`. Deps pinned
+  in `requirements.txt`; tests in `tests/` (`pytest`, 22 tests), dev deps in
+  `requirements-dev.txt`; `ruff` config + CI (`.github/workflows/ci.yml`).
+- Compliance/roadmap: `PRIVACY.md`, `docs/LEGAL.md`, `docs/ROADMAP.md`.
 
 ## Non‑obvious facts that will save you a wrong turn
 1. **`app.py` is canonical; `app-env.py` just imports it.** Consolidated in
@@ -59,7 +61,7 @@ Prototype quality, **not production‑ready** — has live security/privacy issu
 
 ## Fast validation
 ```bash
-python -c "import ast; [ast.parse(open(f).read()) for f in ('app.py','app-env.py')]"  # syntax
-pytest -q                                    # 20 tests, HTTP stubbed (no keys needed)
+ruff check .                                 # lint (config in pyproject.toml)
+pytest -q                                    # 22 tests, HTTP stubbed (no keys needed)
 python app.py                                # boots on 127.0.0.1:8080; visit /map-w
 ```

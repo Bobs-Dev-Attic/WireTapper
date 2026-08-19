@@ -1,3 +1,4 @@
 # Development/test dependencies. Install with:
 #   pip install -r requirements.txt -r requirements-dev.txt
 pytest>=8,<10
+ruff>=0.6           # lint (and optional format); config in pyproject.toml
