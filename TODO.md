@@ -96,12 +96,19 @@ Legend: 🔴 critical · 🟠 high · 🟡 medium · ⚪ low · effort ⏱ S/M/L
   fan‑out, caching, FastAPI/typed contract, gunicorn+nginx). ↪ Implementation is
   future work by design.
 
+## Deploy
+- [x] **Vercel serverless** wired: `api/index.py` + `vercel.json` +
+  `docs/DEPLOY.md`. ↪ Before public: set Redis `RATE_LIMIT_STORAGE` and lower
+  `HTTP_READ_TIMEOUT` (DEPLOY.md §3/§5).
+
 ## Carry-over follow-ups (not blocking; owner action)
 - ⚠️ **Rotate any API key** ever committed to source or a real `.env` (from P0).
 - **Run `scripts/gen_sri.sh`** (needs network) and paste `integrity=` attrs into
   the template — finishes SEC‑09.
 - **Frontend auth** so the `WIRETAPPER_ACCESS_TOKEN` gate is usable end‑to‑end
-  (the static UI doesn't send `X-API-Key` yet).
+  (the static UI doesn't send `X-API-Key` yet). Matters most for a public deploy.
+- **On Vercel:** set `RATE_LIMIT_STORAGE` to a Redis URL (memory:// is per-
+  instance and ineffective on serverless) and tune `HTTP_READ_TIMEOUT`.
 - **Implement or remove** the "SOON" sidebar modules.
 
 ---
