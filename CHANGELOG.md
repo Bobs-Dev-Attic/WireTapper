@@ -4,6 +4,16 @@ All notable changes to WireTapper are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); this
 project uses [Semantic Versioning](https://semver.org/).
 
+## [0.7.4] — 2026-08-19
+
+### Fixed
+- **Lawful-use interstitial wouldn't close.** The overlay div carried an inline
+  `display:flex`, which overrides the `[hidden] { display:none }` UA rule — so
+  `overlay.hidden = true` on "I understand & agree" never hid it (and returning
+  users saw a permanently stuck dialog). Now toggles visibility via inline
+  `display` (`none` default → `flex` when shown → `none` on accept). Verified in
+  a real browser: shows on load, closes on click, stays closed after reload.
+
 ## [0.7.3] — 2026-08-19
 
 ### Fixed
