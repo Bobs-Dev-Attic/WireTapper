@@ -6,11 +6,15 @@ from flask import Flask, request, jsonify, render_template
 
 app = Flask(__name__)
 
-## API credentials (recommend setting these via environment variables)
-WIGLE_API_NAME = "your_wigle_api_name"
-WIGLE_API_TOKEN = "your_wigle_api_token"
-OPENCELLID_API_KEY = "your_opencellid_api_key"
-SHODAN_API_KEY = "your_shodan_api_key"
+## SEC-04: never hardcode credentials in source. Read from the environment
+## (empty string when unset). Export them in your shell before running, e.g.
+##   export WIGLE_API_NAME=... WIGLE_API_TOKEN=... OPENCELLID_API_KEY=... SHODAN_API_KEY=...
+## See .env.example. NOTE: app.py and app-env.py are near-duplicates pending
+## consolidation (TODO P1); app-env.py additionally provides wpa-sec enrichment.
+WIGLE_API_NAME = os.getenv("WIGLE_API_NAME", "")
+WIGLE_API_TOKEN = os.getenv("WIGLE_API_TOKEN", "")
+OPENCELLID_API_KEY = os.getenv("OPENCELLID_API_KEY", "")
+SHODAN_API_KEY = os.getenv("SHODAN_API_KEY", "")
 
 # Dummy data for testing
 DUMMY_DATA = [
@@ -494,6 +498,13 @@ def search():
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8080, debug=True)
+    # SEC-01: never default to the Werkzeug debugger (RCE) or bind all
+    # interfaces. Opt in explicitly via env for local/dev use only, e.g.
+    #   FLASK_DEBUG=1 FLASK_HOST=127.0.0.1 python app.py
+    # In production serve behind a real WSGI server (gunicorn/uvicorn).
+    debug = os.getenv("FLASK_DEBUG", "0").lower() in ("1", "true", "yes")
+    host = os.getenv("FLASK_HOST", "127.0.0.1")
+    port = int(os.getenv("FLASK_PORT", "8080"))
+    app.run(host=host, port=port, debug=debug)
 
     

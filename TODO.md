@@ -3,26 +3,32 @@
 Ordered by risk × leverage. Each item links to detail in
 [`docs/PROJECT_REVIEW.md`](docs/PROJECT_REVIEW.md) and
 [`docs/SECURITY_AUDIT.md`](docs/SECURITY_AUDIT.md). IDs (SEC‑nn) are stable.
+Release notes for completed work live in [`CHANGELOG.md`](CHANGELOG.md).
 
 Legend: 🔴 critical · 🟠 high · 🟡 medium · ⚪ low · effort ⏱ S/M/L
 
 ---
 
-## P0 — Do before this is reachable by anyone else
+## P0 — Do before this is reachable by anyone else ✅ DONE in v0.2.0
 
-- [ ] 🔴 **SEC‑01 Disable the dev debugger / stop binding all interfaces.** ⏱S
-  Set `debug=False`, bind `127.0.0.1`, gate via env; serve with gunicorn in prod.
-- [ ] 🔴 **SEC‑04 Fix secrets hygiene.** ⏱S
-  Add `.gitignore` (`.env`, `__pycache__/`, `*.pyc`, `.venv/`); `git rm --cached
-  .env`; add `.env.example`; remove hardcoded keys from `app.py`; **rotate every
-  key** ever pasted into source or a real `.env`.
-- [ ] 🔴 **SEC‑02 Kill DOM XSS.** ⏱M
-  Replace `innerHTML`/template‑literal `bindPopup` with `textContent` +
-  `createElement` + `escapeHtml()`; sanitize chat replies (DOMPurify). Escape
-  `ssid`, `vendor`, `bssid`, `ip`, `info`.
-- [ ] 🔴 **Fix broken LICENSE reference.** ⏱S
-  Rename `LICENSE-NONCOMMERCIAL.md` → `LICENSE` (or fix the README link) so the
-  CC‑BY‑NC‑4.0 terms actually apply.
+- [x] 🔴 **SEC‑01 Disable the dev debugger / stop binding all interfaces.** ⏱S
+  Done (v0.2.0): defaults to `debug=False`, host `127.0.0.1`, all env‑overridable
+  (`FLASK_DEBUG`/`FLASK_HOST`/`FLASK_PORT`) in `app.py` + `app-env.py`.
+  ↪ Follow‑up (P2): serve via gunicorn/uvicorn in production.
+- [x] 🔴 **SEC‑04 Fix secrets hygiene.** ⏱S
+  Done: `.gitignore` + `.env.example` added (v0.1.1); `.env` untracked and
+  hardcoded keys removed from `app.py` (now env‑based) (v0.2.0).
+  ⚠️ **Still required by maintainer:** **rotate any key** ever committed to source
+  or a real `.env` — code cannot do this for you.
+- [x] 🔴 **SEC‑02 Kill DOM XSS.** ⏱M
+  Done (v0.2.0): added `escapeHtml()`; escaped `ssid`/`vendor`/`bssid`/`ip`/
+  `type`/`signal`/`accuracy`/`timestamp` in popups + sidebar.
+  ↪ Follow‑up (SEC‑10): sanitize the `/chatgpt` reply sink (DOMPurify) before that
+  endpoint ships — flagged inline in the template.
+- [x] 🔴 **Fix broken LICENSE reference.** ⏱S
+  Done (v0.2.0): `LICENSE-NONCOMMERCIAL.md` → `LICENSE`; README link resolves.
+  ↪ Follow‑up (P3): README says "CC‑BY‑NC‑4.0" but the file is a custom NCOSL —
+  reconcile the license text vs. the stated license.
 
 ## P1 — Correctness & core hardening
 

@@ -96,31 +96,33 @@ Follow these steps to get WireTapper up and running:
 
    Choose one of the following methods to configure your API keys and run the application:
 
-   ### Method 1: Modify `app.py` (Direct Configuration)
-   Open `app.py` and manually enter your API keys by replacing the empty strings:
-   ```python
-   WIGLE_API_NAME = "your_wigle_api_name"
-   WIGLE_API_TOKEN = "your_wigle_api_token"
-   OPENCELLID_API_KEY = "your_opencellid_api_key"
-   SHODAN_API_KEY = "your_shodan_api_key"
-   ```
-   Then, start the server:
-   ```bash
-   python app.py
-   ```
-
-   ### Method 2: Use `app-env.py` (Environment Variables)
-   This is the recommended approach for better security. You can export your keys in the terminal:
+   Both entrypoints read keys from **environment variables** (never hardcode
+   secrets in source — see [`docs/SECURITY_AUDIT.md`](docs/SECURITY_AUDIT.md)).
+   Copy `.env.example` for reference, then export your keys in the terminal:
    ```bash
    export WIGLE_API_NAME="your_wigle_api_name"
    export WIGLE_API_TOKEN="your_wigle_api_token"
    export OPENCELLID_API_KEY="your_opencellid_api_key"
    export SHODAN_API_KEY="your_shodan_api_key"
    ```
-   Alternatively, you can define these keys in a `.env` file. Then, start the server:
+
+   ### `app-env.py` (recommended)
+   Includes wpa-sec leaked-credential enrichment. Start the server:
    ```bash
    python app-env.py
    ```
+
+   ### `app.py` (legacy, no wpa-sec)
+   A near-duplicate kept for now (consolidation is planned — see `TODO.md`):
+   ```bash
+   python app.py
+   ```
+
+   > **Note:** a `.env` *file* is not auto-loaded yet (no `python-dotenv`); until
+   > that lands you must `export` the variables in your shell. By default the
+   > server binds `127.0.0.1:8080` with the debugger **off**. For local
+   > development only you may opt in via `FLASK_HOST`, `FLASK_PORT`, and
+   > `FLASK_DEBUG=1`. Never expose the Flask dev server publicly.
 
    The application will be available at `http://localhost:8080/map-w`.
 

@@ -12,6 +12,11 @@ not formal scoring. Cross‑reference IDs are used in [`/TODO.md`](../TODO.md).
 ## Severity legend
 🔴 Critical · 🟠 High · 🟡 Medium · ⚪ Low/Info
 
+## Status (see [`CHANGELOG.md`](../CHANGELOG.md))
+- ✅ **Fixed in v0.2.0:** SEC‑01, SEC‑02, SEC‑04 (code portion; **key rotation
+  still owed by the maintainer**).
+- ⬜ **Open:** SEC‑03, SEC‑05, SEC‑06, SEC‑07, SEC‑08, SEC‑09, SEC‑10.
+
 ---
 
 ### SEC‑01 🔴 Werkzeug debugger + `0.0.0.0` (RCE)

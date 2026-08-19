@@ -556,6 +556,13 @@ def search():
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8080, debug=True)
+    # SEC-01: never default to the Werkzeug debugger (RCE) or bind all
+    # interfaces. Opt in explicitly via env for local/dev use only, e.g.
+    #   FLASK_DEBUG=1 FLASK_HOST=127.0.0.1 python app-env.py
+    # In production serve behind a real WSGI server (gunicorn/uvicorn).
+    debug = os.getenv("FLASK_DEBUG", "0").lower() in ("1", "true", "yes")
+    host = os.getenv("FLASK_HOST", "127.0.0.1")
+    port = int(os.getenv("FLASK_PORT", "8080"))
+    app.run(host=host, port=port, debug=debug)
 
     
