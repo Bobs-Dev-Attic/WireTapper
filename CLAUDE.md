@@ -21,7 +21,9 @@ Prototype quality, **not production‑ready** — has live security/privacy issu
 - `.env` — gitignored (see `.env.example`); auto‑loaded by `app.py`. Deps pinned
   in `requirements.txt`; tests in `tests/` (`pytest`, 22 tests), dev deps in
   `requirements-dev.txt`; `ruff` config + CI (`.github/workflows/ci.yml`).
-- Compliance/roadmap: `PRIVACY.md`, `docs/LEGAL.md`, `docs/ROADMAP.md`.
+- Setup/config: `docs/INSTALL.md`, `docs/CONFIGURATION.md` (full env-var
+  reference), `.env.example`. Compliance/roadmap: `PRIVACY.md`, `docs/LEGAL.md`,
+  `docs/ROADMAP.md`.
 - Deploy: `api/index.py` (Vercel WSGI shim → `from app import app`) + `vercel.json`
   + `docs/DEPLOY.md`. Another thin shim — no logic here either.
 

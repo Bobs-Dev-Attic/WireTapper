@@ -4,6 +4,21 @@ All notable changes to WireTapper are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); this
 project uses [Semantic Versioning](https://semver.org/).
 
+## [0.7.1] — 2026-08-19
+
+### Docs
+- **`docs/INSTALL.md`** — full setup walkthrough: prerequisites (Python 3.10+),
+  virtualenv, runtime + dev deps, how to obtain each provider API key, `.env`
+  configuration, running (dev + gunicorn), verification, and a troubleshooting
+  table.
+- **`docs/CONFIGURATION.md`** — complete environment-variable reference (every
+  knob `app.py` reads, with defaults, whether required, and notes) plus
+  recommended local vs. production profiles.
+- Completed `.env.example` — added the previously undocumented `RATE_LIMIT_STORAGE`,
+  `SECURITY_HEADERS`, `CSP_ENABLED`, and `LOG_LEVEL`.
+- Expanded the README Installation section (venv + dev deps + verify) and linked
+  the new guides.
+
 ## [0.7.0] — 2026-08-19
 
 ### Changed (performance)
