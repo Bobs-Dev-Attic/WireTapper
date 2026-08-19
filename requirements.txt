@@ -10,3 +10,8 @@ Flask-Limiter==4.1.1     # per-IP rate limiting on data endpoints (SEC-03)
 # Production WSGI server (do NOT use the Flask dev server publicly — SEC-01):
 #   gunicorn -w 2 -b 127.0.0.1:8080 app:app
 gunicorn==23.0.0
+
+# For a shared rate-limit store (required on serverless / multi-worker — see
+# docs/DEPLOY.md §3), also install a Redis client and set RATE_LIMIT_STORAGE:
+#   limits[redis]
+

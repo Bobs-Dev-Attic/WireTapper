@@ -44,10 +44,18 @@ banner text. It is prototype-grade but now hardened (see `CHANGELOG.md`).
   markup; extracting static assets (and self-hosting the libs) improves caching,
   CSP tightening, and maintainability.
 
+## Deployment
+
+- **Vercel** (serverless): configured — `vercel.json` + `api/index.py`. See
+  [`DEPLOY.md`](DEPLOY.md). Before going public, set a Redis `RATE_LIMIT_STORAGE`
+  (memory:// is per-instance on serverless) and lower `HTTP_READ_TIMEOUT` to fit
+  the function time limit — parallelizing the upstream fan-out (below) removes
+  most of that timeout pressure.
+
 ## Production hardening (beyond the dev server)
 
 - Serve via **gunicorn/uvicorn behind nginx** (TLS termination, real timeouts,
-  worker management). Never the Flask dev server. See `README.md`.
+  worker management). Never the Flask dev server. See `README.md` / `DEPLOY.md`.
 - **Structured logging + metrics** (request IDs, upstream latencies, quota
   counters) instead of `print`/`log.warning`.
 - **Secrets manager** (not `.env`) for deployed instances; per-provider key

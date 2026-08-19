@@ -21,7 +21,10 @@ queue in [`TODO.md`](TODO.md); system map in
 - `requirements.txt` — pinned deps (+ gunicorn); `requirements-dev.txt` —
   pytest + ruff. `tests/` — 22 pytest tests (HTTP stubbed). CI in
   `.github/workflows/ci.yml`. `pyproject.toml` — ruff config.
-- Docs: `PRIVACY.md`, `docs/LEGAL.md`, `docs/ROADMAP.md`. `.env` gitignored/auto-loaded.
+- Docs: `PRIVACY.md`, `docs/LEGAL.md`, `docs/ROADMAP.md`, `docs/DEPLOY.md`. `.env`
+  gitignored/auto-loaded.
+- Deploy: `api/index.py` (Vercel WSGI shim: `from app import app`) + `vercel.json`.
+  No logic in the shim.
 
 ## Gotchas (save yourself a wrong turn)
 1. `app.py` is canonical; `app-env.py` only imports it (consolidated v0.3.0).

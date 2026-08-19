@@ -32,7 +32,9 @@ they don't re‑read every file. Keep this in sync when routes/flows change.
   Py 3.9/3.12).
 - **Docs:** `PRIVACY.md`, `docs/LEGAL.md`, `docs/ROADMAP.md` (compliance +
   roadmap). `scripts/gen_sri.sh` generates CDN SRI hashes.
-- **Prod:** `gunicorn -w 2 -b 127.0.0.1:8080 app:app` (never the dev server).
+- **Prod / deploy:** `gunicorn -w 2 -b 127.0.0.1:8080 app:app` (never the dev
+  server), or Vercel serverless via `api/index.py` + `vercel.json`. See
+  `docs/DEPLOY.md` (Redis rate-limit store + timeout caveats).
 
 ## External services
 | Service | Used for | Endpoint(s) | Auth |

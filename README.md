@@ -154,7 +154,15 @@ pytest -q           # test suite (outbound HTTP stubbed — no keys needed)
 ```
 
 CI (GitHub Actions, `.github/workflows/ci.yml`) runs ruff + pytest on Python
-3.10 and 3.12 for every push to `main` and every pull request. See
+3.10 and 3.12 for every push to `main` and every pull request.
+
+### Deploying
+
+WireTapper ships with Vercel config (`vercel.json` + `api/index.py`) and runs as
+a Python serverless function, or under gunicorn on any WSGI host
+(`gunicorn -w 2 -b 127.0.0.1:8080 app:app`). See
+[`docs/DEPLOY.md`](docs/DEPLOY.md) — **read §3 (rate-limit store) and §5
+(function timeout) before exposing it publicly.** See
 [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the system map and
 [`TODO.md`](TODO.md) for the remaining roadmap.
 

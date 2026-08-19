@@ -4,6 +4,20 @@ All notable changes to WireTapper are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); this
 project uses [Semantic Versioning](https://semver.org/).
 
+## [0.6.0] — 2026-08-19
+
+### Added
+- **Vercel deployment support.** `api/index.py` (WSGI entrypoint re-exporting the
+  Flask `app`), `vercel.json` (routes all paths to it, bundles `templates/`), and
+  `.vercelignore`. No app code changes — `app.py` already reads `RATE_LIMIT_STORAGE`
+  and `HTTP_READ_TIMEOUT` from env. The `app.run()` dev-server block is not
+  executed on Vercel, so serverless deploys can't start the debugger.
+- **`docs/DEPLOY.md`** — Vercel + gunicorn instructions, env-var table, and the
+  two serverless caveats: use a Redis `RATE_LIMIT_STORAGE` (memory:// is
+  per-instance and ineffective on serverless) and lower `HTTP_READ_TIMEOUT` to
+  stay under the function time limit. `requirements.txt` notes the optional
+  `limits[redis]` client.
+
 ## [0.5.1] — 2026-08-19
 
 ### Fixed

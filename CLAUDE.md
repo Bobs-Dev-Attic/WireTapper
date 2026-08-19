@@ -22,6 +22,8 @@ Prototype quality, **not production‑ready** — has live security/privacy issu
   in `requirements.txt`; tests in `tests/` (`pytest`, 22 tests), dev deps in
   `requirements-dev.txt`; `ruff` config + CI (`.github/workflows/ci.yml`).
 - Compliance/roadmap: `PRIVACY.md`, `docs/LEGAL.md`, `docs/ROADMAP.md`.
+- Deploy: `api/index.py` (Vercel WSGI shim → `from app import app`) + `vercel.json`
+  + `docs/DEPLOY.md`. Another thin shim — no logic here either.
 
 ## Non‑obvious facts that will save you a wrong turn
 1. **`app.py` is canonical; `app-env.py` just imports it.** Consolidated in
