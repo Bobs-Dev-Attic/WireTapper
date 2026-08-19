@@ -14,8 +14,8 @@ import re
 from hashlib import sha1
 
 import requests
+from flask import Flask, jsonify, render_template, request
 from requests.adapters import HTTPAdapter
-from flask import Flask, request, jsonify, render_template
 
 # P1: optional urllib3 retry (degrade gracefully if unavailable)
 try:

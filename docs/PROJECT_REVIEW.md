@@ -2,6 +2,13 @@
 
 **Reviewed:** 2026‑08‑19 · **Commit:** `7e43d6a` · **Reviewer scope:** full repository
 
+> **Status update:** this review captured the *original* baseline. The prioritized
+> findings (P0–P3) have since been remediated across v0.2.0–v0.5.0 — see
+> [`CHANGELOG.md`](../CHANGELOG.md) and [`TODO.md`](../TODO.md). Remaining items
+> are the carry‑overs in TODO (key rotation, SRI, frontend auth) and
+> [`ROADMAP.md`](ROADMAP.md). The sections below are kept as the original
+> rationale; don't read them as the current state.
+
 WireTapper is a single‑file **Flask** web app that fronts several OSINT APIs
 (Wigle, OpenCellID/UnwiredLabs, Shodan, wpa‑sec) behind a Leaflet map UI and
 plots "nearby" wireless devices. This document is the narrative review; the

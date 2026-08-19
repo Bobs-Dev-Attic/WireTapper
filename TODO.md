@@ -73,31 +73,40 @@ Legend: 🔴 critical · 🟠 high · 🟡 medium · ⚪ low · effort ⏱ S/M/L
   removed. ↪ Implementing the actual modules stays future work.
 - [x] 🟡 **Remove client telemetry beacon.** Done (v0.4.0): removed entirely.
 
-## P3 — Quality, product, compliance
+## P3 — Quality, product, compliance ✅ DONE in v0.5.0
 
-- [~] ⚪ **Add tests + CI** — `tests/test_app.py` (pytest, 20 tests) added in
-  v0.4.0. ↪ **Remaining:** a GitHub Action / `SessionStart` hook to run lint +
-  tests on push, and contract tests for provider→device mapping. ⏱M
-- [ ] ⚪ **Add linter/formatter** (ruff + black) config. ⏱S
-- [ ] ⚪ **Privacy notice + lawful‑use interstitial** — state lawful basis, data
-  retention, and an "authorized networks only" acknowledgement. ⏱M
-- [ ] ⚪ **Third‑party ToS compliance** — document Shodan/Wigle/OpenCellID terms
-  for re‑serving data. ⏱S
-- [ ] ⚪ **Right‑size marketing copy** — align README claims (BLE/CCTV/vehicle/cell
-  "real‑time correlation") with what actually ships; add a roadmap. ⏱S
-- [ ] ⚪ **Unify branding** — WireTapper vs. HayOS/H9/Hayden. ⏱S
-- [ ] ⚪ **Accessibility pass** — remove `<center>`, add labels/focus states, fix
-  contrast, don't encode signal by color alone. ⏱M
-- [ ] ⚪ **Fix template cruft** — 3 duplicate `<title>`, duplicate Leaflet
-  includes, stray `}` in the media query near L1259, duplicate `addMessage`. ⏱S
-- [ ] ⚪ **Consider better options** — swap the Werkzeug dev server for
-  gunicorn+nginx; consider FastAPI if async fan‑out to providers is wanted; use
-  `httpx.AsyncClient` to parallelize the 3 upstream calls per request; cache
-  provider responses (Redis/TTL) to cut quota + latency. ⏱L
+- [x] ⚪ **Add tests + CI** — pytest suite (now 22 tests, incl. provider→device
+  mapping + `wpasec_kquery` contract) + GitHub Actions CI (ruff + pytest on
+  3.9/3.12). Done (v0.4.0 tests, v0.5.0 CI + contract tests).
+- [x] ⚪ **Add linter** — ruff config in `pyproject.toml`; codebase ruff-clean.
+  Done (v0.5.0). (`ruff format` available but not gated yet.)
+- [x] ⚪ **Privacy notice + lawful‑use interstitial** — `PRIVACY.md` + one‑time
+  in‑app acknowledgement. Done (v0.5.0).
+- [x] ⚪ **Third‑party ToS compliance** — `docs/LEGAL.md`. Done (v0.5.0).
+- [x] ⚪ **Right‑size marketing copy** — README reframed as OSINT aggregator +
+  roadmap link. Done (v0.5.0).
+- [x] ⚪ **Unify branding** — `<title>`/H1 unified to "WireTapper" (author credit
+  kept in subtitle). Done (v0.5.0).
+- [x] ⚪ **Accessibility pass** — `<center>` removed, focus states, ARIA labels,
+  keyboard‑operable cards, non‑color signal value. Done (v0.5.0).
+- [x] ⚪ **Fix template cruft** — duplicate titles/Leaflet/Font‑Awesome/addMessage
+  removed; dead highlight.js dropped; the **orphan `}`** (an unbalanced CSS brace
+  that silently dropped following rules) removed. Done (v0.5.0).
+- [~] ⚪ **Consider better options** — documented in `docs/ROADMAP.md` (async
+  fan‑out, caching, FastAPI/typed contract, gunicorn+nginx). ↪ Implementation is
+  future work by design.
+
+## Carry-over follow-ups (not blocking; owner action)
+- ⚠️ **Rotate any API key** ever committed to source or a real `.env` (from P0).
+- **Run `scripts/gen_sri.sh`** (needs network) and paste `integrity=` attrs into
+  the template — finishes SEC‑09.
+- **Frontend auth** so the `WIRETAPPER_ACCESS_TOKEN` gate is usable end‑to‑end
+  (the static UI doesn't send `X-API-Key` yet).
+- **Implement or remove** the "SOON" sidebar modules.
 
 ---
 
-### Suggested execution path
-Land **P0** as one hardening PR (small, high‑impact), then **P1** as a
-"correctness + secrets" PR, then iterate P2/P3. Keep `docs/ARCHITECTURE.md`
-updated as routes/contract change.
+### Status
+P0–P3 complete (v0.2.0 → v0.5.0). Remaining work is the carry-over list above
+plus anything in [`docs/ROADMAP.md`](docs/ROADMAP.md). Keep
+`docs/ARCHITECTURE.md`, `CHANGELOG.md`, and this file updated as things change.

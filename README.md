@@ -7,11 +7,22 @@
 > [!NOTE]
 > **Wireless OSINT & Signal Intelligence Platform**
 
-WireTapper is a wireless OSINT tool designed to discover, map, and analyze radio-based devices using passive signal intelligence. It provides investigators, researchers, and security analysts with real-time visibility into the invisible wireless landscape around them.
+WireTapper is a wireless **OSINT aggregator**: it maps and correlates wireless
+devices by querying **public third-party databases** — [Wigle](https://wigle.net),
+[OpenCellID](https://opencellid.org)/UnwiredLabs, [Shodan](https://www.shodan.io),
+and [wpa-sec](https://wpa-sec.stanev.org) — and plotting the results on an
+interactive map for investigators, researchers, and security analysts.
 
-WireTapper detects and correlates signals from common wireless technologies, helping users understand what devices exist, where they are likely located, and how they interact, without active intrusion.
+WireTapper also surfaces Wi-Fi networks whose credentials are already public in
+wpa-sec, using a privacy-preserving **k-anonymity** query (only a short hash
+prefix leaves your machine).
 
-WireTapper identifies leaked Wi-Fi network credentials based on privacy-protecting k-Anonymity query scheme.
+> **How it works (and what it is not).** WireTapper reads **historical, public
+> database records** — it does **not** perform live RF/SDR capture, packet
+> interception, or credential cracking, and device "type" (camera, vehicle, TV,
+> …) is *inferred from network names*, not from a dedicated sensor. Use it for
+> **lawful, authorized purposes only** — see [`PRIVACY.md`](PRIVACY.md) and
+> [`docs/LEGAL.md`](docs/LEGAL.md). Roadmap: [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
 <p align="center">
   🔗 <strong>Website:</strong>
@@ -52,17 +63,21 @@ WireTapper identifies leaked Wi-Fi network credentials based on privacy-protecti
 > [![GitHub](https://img.shields.io/badge/GitHub-h9zdev%2FEthiFi-green?logo=github&style=flat-square)](https://github.com/h9zdev/EthiFi)
 
 <br>
-## 📶 Supported Signal Intelligence
+## 📶 Device Categories
 
-WireTapper can identify and analyze signals from:
+WireTapper plots records from the databases above and **categorizes** them from
+network names / banners (heuristic classification, not dedicated sensing):
 
-*   **Wi-Fi** access points & clients, Wi-Fi credentials leak
-*   **Bluetooth & BLE** devices
-*   **Wireless CCTV / IP cameras**
-*   **Vehicles** broadcasting RF signals (infotainment, telemetry, keyless systems)
-*   **Headphones, wearables**, and smart devices
+*   **Wi-Fi** access points & clients (+ public credential-leak flag from wpa-sec)
+*   **Bluetooth & BLE** devices (via Wigle's Bluetooth dataset)
+*   **CCTV / IP cameras**, **dashcams**
+*   **Vehicles** (names matching infotainment/telematics brands)
+*   **Headphones, wearables**, and smart audio
 *   **Smart TVs & IoT** appliances
 *   **Cell towers** & mobile network beacons
+
+> These are labels applied to third-party data, not independent RF sensors — see
+> the "How it works" note above.
 
 
 ## 🔑 API Services
@@ -128,6 +143,19 @@ Follow these steps to get WireTapper up and running:
 
    The application will be available at `http://localhost:8080/map-w`.
 
+## 🧪 Development
+
+```bash
+pip install -r requirements.txt -r requirements-dev.txt
+ruff check .        # lint (config in pyproject.toml)
+pytest -q           # test suite (outbound HTTP stubbed — no keys needed)
+```
+
+CI (GitHub Actions, `.github/workflows/ci.yml`) runs ruff + pytest on Python 3.9
+and 3.12 for every push to `main` and every pull request. See
+[`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the system map and
+[`TODO.md`](TODO.md) for the remaining roadmap.
+
 ## 📷 Screenshots
 
 ![WireTapper Image 1](https://raw.githubusercontent.com/h9zdev/WireTapper/main/images/Wiretapper11.png)  
@@ -139,9 +167,14 @@ Follow these steps to get WireTapper up and running:
 
 ## 📜 License
 
-This project is licensed under the Creative Commons Attribution-NonCommercial 4.0 International (CC BY-NC 4.0) License. See the [LICENSE](LICENSE) file for more details.
+This project is licensed under the **Non-Commercial Open Source License (NCOSL)** —
+use, copy, modify, and distribute for **non-commercial purposes only**, with
+attribution. Commercial use requires explicit permission. See the
+[LICENSE](LICENSE) file for the authoritative terms.
 
-**Unauthorized use is strictly prohibited.**
+**Unauthorized and unlawful use is strictly prohibited.** See
+[`PRIVACY.md`](PRIVACY.md) for acceptable use and [`docs/LEGAL.md`](docs/LEGAL.md)
+for third-party data-source terms.
 
 📧 Contact: singularat@protn.me
 

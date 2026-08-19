@@ -3,7 +3,8 @@
 Purpose: give an AI agent or new contributor the whole system in one screen so
 they don't re‑read every file. Keep this in sync when routes/flows change.
 
-> Updated for **v0.3.0** (P1 consolidation). Backends are now unified.
+> Updated for **v0.5.0** (P3). Backends unified (P1); hardened (P0–P2); CI +
+> compliance docs + accessibility (P3).
 
 ## Stack
 - **Backend:** Python 3 + Flask, **single canonical module `app.py`**.
@@ -11,8 +12,9 @@ they don't re‑read every file. Keep this in sync when routes/flows change.
   `app.py` includes env config + `wpasec_kquery`. WSGI targets: `app:app` (or
   `app-env:app`).
 - **Frontend:** one server‑rendered Jinja template `templates/wifi-search.html`
-  (Leaflet + MarkerCluster + Font Awesome + highlight.js via CDN). All app logic
-  is inline `<script>`.
+  (Leaflet + MarkerCluster + Font Awesome via CDN; highlight.js removed in P3).
+  All app logic is inline `<script>`. A one‑time lawful‑use interstitial gates
+  the UI (localStorage `wiretapper_consent_v1`).
 - **Config:** env vars, auto‑loaded from `.env` via `python-dotenv` (`.env` is
   gitignored; see `.env.example`). Keys: `WIGLE_API_NAME/TOKEN`,
   `OPENCELLID_API_KEY`, `SHODAN_API_KEY`. Server/security knobs: `FLASK_HOST/
@@ -25,7 +27,11 @@ they don't re‑read every file. Keep this in sync when routes/flows change.
   (`HTTP`) with timeouts + retry/pooling. Every response carries security
   headers + a CSP (`after_request`). Data endpoints are rate‑limited and behind
   an optional `X-API-Key` gate. Demo data is opt‑in via `?demo=1`.
-- **Tests:** `tests/test_app.py` (pytest) — `pytest` from repo root; HTTP stubbed.
+- **Tests/CI:** `tests/test_app.py` (pytest, 22 tests; HTTP stubbed). `ruff`
+  lint config in `pyproject.toml`. CI: `.github/workflows/ci.yml` (ruff + pytest,
+  Py 3.9/3.12).
+- **Docs:** `PRIVACY.md`, `docs/LEGAL.md`, `docs/ROADMAP.md` (compliance +
+  roadmap). `scripts/gen_sri.sh` generates CDN SRI hashes.
 - **Prod:** `gunicorn -w 2 -b 127.0.0.1:8080 app:app` (never the dev server).
 
 ## External services
